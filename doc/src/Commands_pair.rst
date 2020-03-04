@@ -11,10 +11,10 @@
    * :ref:`Improper styles <improper>`
    * :doc:`KSpace styles <Commands_kspace>`
 
-Pair\_style potentials
+Pair_style potentials
 ======================
 
-All LAMMPS :doc:`pair\_style <pair_style>` commands.  Some styles have
+All LAMMPS :doc:`pair_style <pair_style>` commands.  Some styles have
 accelerated versions.  This is indicated by additional letters in
 parenthesis: g = GPU, i = USER-INTEL, k = KOKKOS, o = USER-OMP, t =
 OPT.
@@ -26,6 +26,10 @@ OPT.
    * :doc:`zero <pair_zero>`
    * :doc:`hybrid (k) <pair_hybrid>`
    * :doc:`hybrid/overlay (k) <pair_hybrid>`
+   * :doc:`kim <pair_kim>`
+   * :doc:`list <pair_list>`
+   *
+   *
    *
    *
    *
@@ -108,14 +112,12 @@ OPT.
    * :doc:`hbond/dreiding/lj (o) <pair_hbond_dreiding>`
    * :doc:`hbond/dreiding/morse (o) <pair_hbond_dreiding>`
    * :doc:`ilp/graphene/hbn <pair_ilp_graphene_hbn>`
-   * :doc:`kim <pair_kim>`
    * :doc:`kolmogorov/crespi/full <pair_kolmogorov_crespi_full>`
    * :doc:`kolmogorov/crespi/z <pair_kolmogorov_crespi_z>`
    * :doc:`lcbop <pair_lcbop>`
    * :doc:`lebedeva/z <pair_lebedeva_z>`
    * :doc:`lennard/mdf <pair_mdf>`
    * :doc:`line/lj <pair_line_lj>`
-   * :doc:`list <pair_list>`
    * :doc:`lj/charmm/coul/charmm (iko) <pair_charmm>`
    * :doc:`lj/charmm/coul/charmm/implicit (ko) <pair_charmm>`
    * :doc:`lj/charmm/coul/long (gikot) <pair_charmm>`
@@ -146,7 +148,7 @@ OPT.
    * :doc:`lj/cut/soft (o) <pair_fep_soft>`
    * :doc:`lj/cut/thole/long (o) <pair_thole>`
    * :doc:`lj/cut/tip4p/cut (o) <pair_lj>`
-   * :doc:`lj/cut/tip4p/long (ot) <pair_lj>`
+   * :doc:`lj/cut/tip4p/long (got) <pair_lj>`
    * :doc:`lj/cut/tip4p/long/soft (o) <pair_fep_soft>`
    * :doc:`lj/expand (gko) <pair_lj_expand>`
    * :doc:`lj/expand/coul/long (g) <pair_lj_expand>`
@@ -162,7 +164,7 @@ OPT.
    * :doc:`lj/sf/dipole/sf (go) <pair_dipole>`
    * :doc:`lj/smooth (o) <pair_lj_smooth>`
    * :doc:`lj/smooth/linear (o) <pair_lj_smooth_linear>`
-   * :doc:`lj/switch3/coulgauss/long <pair_lj_switch3_coulgauss>`
+   * :doc:`lj/switch3/coulgauss/long <pair_lj_switch3_coulgauss_long>`
    * :doc:`lj96/cut (go) <pair_lj96>`
    * :doc:`local/density <pair_local_density>`
    * :doc:`lubricate (o) <pair_lubricate>`
@@ -174,8 +176,10 @@ OPT.
    * :doc:`meam/c <pair_meamc>`
    * :doc:`meam/spline (o) <pair_meam_spline>`
    * :doc:`meam/sw/spline <pair_meam_sw_spline>`
+   * :doc:`mesocnt <pair_mesocnt>`
    * :doc:`mgpt <pair_mgpt>`
    * :doc:`mie/cut (g) <pair_mie>`
+   * :doc:`mm3/switch3/coulgauss/long <pair_mm3_switch3_coulgauss_long>`
    * :doc:`momb <pair_momb>`
    * :doc:`morse (gkot) <pair_morse>`
    * :doc:`morse/smooth/linear (o) <pair_morse>`
@@ -197,10 +201,17 @@ OPT.
    * :doc:`oxdna2/hbond <pair_oxdna2>`
    * :doc:`oxdna2/stk <pair_oxdna2>`
    * :doc:`oxdna2/xstk <pair_oxdna2>`
+   * :doc:`oxrna2/excv <pair_oxrna2>`
+   * :doc:`oxrna2/hbond <pair_oxrna2>`
+   * :doc:`oxrna2/dh <pair_oxrna2>`
+   * :doc:`oxrna2/stk <pair_oxrna2>`
+   * :doc:`oxrna2/xstk <pair_oxrna2>`
+   * :doc:`oxrna2/coaxstk <pair_oxrna2>`
    * :doc:`peri/eps <pair_peri>`
    * :doc:`peri/lps (o) <pair_peri>`
    * :doc:`peri/pmb (o) <pair_peri>`
    * :doc:`peri/ves <pair_peri>`
+   * :doc:`polymorphic <pair_polymorphic>`
    * :doc:`python <pair_python>`
    * :doc:`quip <pair_quip>`
    * :doc:`reax/c (ko) <pair_reaxc>`
@@ -209,7 +220,7 @@ OPT.
    * :doc:`sdpd/taitwater/isothermal <pair_sdpd_taitwater_isothermal>`
    * :doc:`smd/hertz <pair_smd_hertz>`
    * :doc:`smd/tlsph <pair_smd_tlsph>`
-   * :doc:`smd/tri\_surface <pair_smd_triangulated_surface>`
+   * :doc:`smd/tri_surface <pair_smd_triangulated_surface>`
    * :doc:`smd/ulsph <pair_smd_ulsph>`
    * :doc:`smtbq <pair_smtbq>`
    * :doc:`snap (k) <pair_snap>`
@@ -248,5 +259,3 @@ OPT.
    * :doc:`yukawa (gko) <pair_yukawa>`
    * :doc:`yukawa/colloid (go) <pair_yukawa_colloid>`
    * :doc:`zbl (gko) <pair_zbl>`
-   *
-   *
