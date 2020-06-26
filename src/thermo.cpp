@@ -44,6 +44,7 @@
 #include "memory.h"
 #include "error.h"
 #include "math_const.h"
+#include "utils.h"
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
@@ -159,7 +160,7 @@ Thermo::Thermo(LAMMPS *lmp, int narg, char **arg) : Pointers(lmp)
   // allocate per-field memory
   // process line of keywords
 
-  nfield_initial = atom->count_words(line);
+  nfield_initial = utils::trim_and_count_words(line);
   allocate();
   parse_fields(line);
 
@@ -312,15 +313,10 @@ void Thermo::header()
 {
   if (lineflag == MULTILINE) return;
 
-  int loc = 0;
-  for (int i = 0; i < nfield; i++)
-    loc += sprintf(&line[loc],"%s ",keyword[i]);
-  sprintf(&line[loc],"\n");
-
-  if (me == 0) {
-    if (screen) fprintf(screen,"%s",line);
-    if (logfile) fprintf(logfile,"%s",line);
-  }
+  std::string hdr;
+  for (int i = 0; i < nfield; i++) hdr +=  keyword[i] + std::string(" ");
+  hdr += "\n";
+  if (me == 0) utils::logmesg(lmp,hdr);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -384,11 +380,8 @@ void Thermo::compute(int flag)
   // print line to screen and logfile
 
   if (me == 0) {
-    if (screen) fprintf(screen,"%s",line);
-    if (logfile) {
-      fprintf(logfile,"%s",line);
-      if (flushflag) fflush(logfile);
-    }
+    utils::logmesg(lmp,line);
+    if (logfile && flushflag) fflush(logfile);
   }
 
   // set to 1, so that subsequent invocations of CPU time will be non-zero
@@ -1069,7 +1062,7 @@ int Thermo::add_variable(const char *id)
    customize a new keyword by adding to if statement
 ------------------------------------------------------------------------- */
 
-int Thermo::evaluate_keyword(char *word, double *answer)
+int Thermo::evaluate_keyword(const char *word, double *answer)
 {
   // turn off normflag if natoms = 0 to avoid divide by 0
   // normflag must be set for lo-level thermo routines that may be invoked
