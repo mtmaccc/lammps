@@ -1026,14 +1026,14 @@ FILE *Force::open_potential(const char *name, int *auto_convert)
     }
 
     if (auto_convert == nullptr) {
-      if (units != unit_style) {
+      if (!units.empty() && (units != unit_style)) {
         error->one(FLERR, fmt::format("Potential file {} requires {} units "
                                       "but {} units are in use", name, units,
                                       unit_style));
         return nullptr;
       }
     } else {
-      if (units == unit_style) {
+      if (units.empty() || units == unit_style) {
         *auto_convert = utils::NOCONVERT;
       } else {
         if ((units == "metal") && (unit_style == "real")

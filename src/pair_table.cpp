@@ -70,7 +70,6 @@ void PairTable::compute(int eflag, int vflag)
   int i,j,ii,jj,inum,jnum,itype,jtype,itable;
   double xtmp,ytmp,ztmp,delx,dely,delz,evdwl,fpair;
   double rsq,factor_lj,fraction,value,a,b;
-  char estr[128];
   int *ilist,*jlist,*numneigh,**firstneigh;
   Table *tb;
 
@@ -116,37 +115,28 @@ void PairTable::compute(int eflag, int vflag)
 
       if (rsq < cutsq[itype][jtype]) {
         tb = &tables[tabindex[itype][jtype]];
-        if (rsq < tb->innersq) {
-          sprintf(estr,"Pair distance < table inner cutoff: "
-                  "ijtype %d %d dist %g",itype,jtype,sqrt(rsq));
-          error->one(FLERR,estr);
-        }
-
+        if (rsq < tb->innersq)
+          error->one(FLERR,fmt::format("Pair distance < table inner cutoff: "
+                                       "ijtype {} {} dist {}",itype,jtype,sqrt(rsq)));
         if (tabstyle == LOOKUP) {
           itable = static_cast<int> ((rsq - tb->innersq) * tb->invdelta);
-          if (itable >= tlm1) {
-            sprintf(estr,"Pair distance > table outer cutoff: "
-                    "ijtype %d %d dist %g",itype,jtype,sqrt(rsq));
-            error->one(FLERR,estr);
-          }
+          if (itable >= tlm1)
+            error->one(FLERR,fmt::format("Pair distance > table outer cutoff: "
+                                         "ijtype {} {} dist {}",itype,jtype,sqrt(rsq)));
           fpair = factor_lj * tb->f[itable];
         } else if (tabstyle == LINEAR) {
           itable = static_cast<int> ((rsq - tb->innersq) * tb->invdelta);
-          if (itable >= tlm1) {
-            sprintf(estr,"Pair distance > table outer cutoff: "
-                    "ijtype %d %d dist %g",itype,jtype,sqrt(rsq));
-            error->one(FLERR,estr);
-          }
+          if (itable >= tlm1)
+            error->one(FLERR,fmt::format("Pair distance > table outer cutoff: "
+                                         "ijtype {} {} dist {}",itype,jtype,sqrt(rsq)));
           fraction = (rsq - tb->rsq[itable]) * tb->invdelta;
           value = tb->f[itable] + fraction*tb->df[itable];
           fpair = factor_lj * value;
         } else if (tabstyle == SPLINE) {
           itable = static_cast<int> ((rsq - tb->innersq) * tb->invdelta);
-          if (itable >= tlm1) {
-            sprintf(estr,"Pair distance > table outer cutoff: "
-                    "ijtype %d %d dist %g",itype,jtype,sqrt(rsq));
-            error->one(FLERR,estr);
-          }
+          if (itable >= tlm1)
+            error->one(FLERR,fmt::format("Pair distance > table outer cutoff: "
+                                         "ijtype {} {} dist {}",itype,jtype,sqrt(rsq)));
           b = (rsq - tb->rsq[itable]) * tb->invdelta;
           a = 1.0 - b;
           value = a * tb->f[itable] + b * tb->f[itable+1] +
@@ -1042,11 +1032,15 @@ void *PairTable::extract(const char *str, int &dim)
   if (strcmp(str,"cut_coul") != 0) return NULL;
   if (ntables == 0) error->all(FLERR,"All pair coeffs are not set");
 
-  double cut_coul = tables[0].cut;
-  for (int m = 1; m < ntables; m++)
-    if (tables[m].cut != cut_coul)
-      error->all(FLERR,
-                 "Pair table cutoffs must all be equal to use with KSpace");
-  dim = 0;
-  return &tables[0].cut;
+  // only check for cutoff consistency if claiming to be KSpace compatible
+
+  if (ewaldflag || pppmflag || msmflag || dispersionflag || tip4pflag) {
+    double cut_coul = tables[0].cut;
+    for (int m = 1; m < ntables; m++)
+      if (tables[m].cut != cut_coul)
+        error->all(FLERR,
+                   "Pair table cutoffs must all be equal to use with KSpace");
+    dim = 0;
+    return &tables[0].cut;
+  } else return NULL;
 }
