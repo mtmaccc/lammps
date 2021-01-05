@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -57,6 +57,7 @@ PairMultiLucyRXKokkos<DeviceType>::PairMultiLucyRXKokkos(LAMMPS *lmp) : PairMult
 {
   respa_enable = 0;
 
+  kokkosable = 1;
   atomKK = (AtomKokkos *) atom;
   execution_space = ExecutionSpaceFromDevice<DeviceType>::space;
   datamask_read = EMPTY_MASK;
@@ -83,7 +84,7 @@ PairMultiLucyRXKokkos<DeviceType>::~PairMultiLucyRXKokkos()
 
   delete h_table;
   delete d_table;
-  tabindex = NULL;
+  tabindex = nullptr;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -175,7 +176,7 @@ void PairMultiLucyRXKokkos<DeviceType>::compute_style(int eflag_in, int vflag_in
 
   {
     const int ntotal = nlocal + nghost;
-    if (ntotal > d_mixWtSite1.extent(0)) {
+    if (ntotal > (int)d_mixWtSite1.extent(0)) {
       d_mixWtSite1old = typename AT::t_float_1d("PairMultiLucyRX::mixWtSite1old",ntotal);
       d_mixWtSite2old = typename AT::t_float_1d("PairMultiLucyRX::mixWtSite2old",ntotal);
       d_mixWtSite1 = typename AT::t_float_1d("PairMultiLucyRX::mixWtSite1",ntotal);
@@ -511,12 +512,13 @@ void PairMultiLucyRXKokkos<DeviceType>::computeLocalDensity()
 
   atomKK->modified(execution_space,DPDRHO_MASK);
 
-  // communicate and sum densities (on the host)
+  // communicate and sum densities
 
   if (newton_pair)
     comm->reverse_comm_pair(this);
 
   comm->forward_comm_pair(this);
+  atomKK->sync(execution_space,DPDRHO_MASK);
 }
 
 template<class DeviceType>
@@ -659,8 +661,7 @@ void PairMultiLucyRXKokkos<DeviceType>::getMixingWeights(int id, double &mixWtSi
 /* ---------------------------------------------------------------------- */
 
 template<class DeviceType>
-int PairMultiLucyRXKokkos<DeviceType>::pack_forward_comm_kokkos(int n, DAT::tdual_int_2d k_sendlist, int iswap_in, DAT::tdual_xfloat_1d &buf,
-                               int pbc_flag, int *pbc)
+int PairMultiLucyRXKokkos<DeviceType>::pack_forward_comm_kokkos(int n, DAT::tdual_int_2d k_sendlist, int iswap_in, DAT::tdual_xfloat_1d &buf, int /*pbc_flag*/, int * /*pbc*/)
 {
   atomKK->sync(execution_space,DPDRHO_MASK);
 
@@ -687,7 +688,7 @@ void PairMultiLucyRXKokkos<DeviceType>::unpack_forward_comm_kokkos(int n, int fi
   v_buf = buf.view<DeviceType>();
   Kokkos::parallel_for(Kokkos::RangePolicy<LMPDeviceType, TagPairMultiLucyRXUnpackForwardComm>(0,n),*this);
 
-  atomKK->modified(execution_space,DPDRHO_MASK);
+  atomKK->modified(execution_space,DPDRHO_MASK); // needed for auto_sync
 }
 
 template<class DeviceType>
@@ -699,7 +700,8 @@ void PairMultiLucyRXKokkos<DeviceType>::operator()(TagPairMultiLucyRXUnpackForwa
 /* ---------------------------------------------------------------------- */
 
 template<class DeviceType>
-int PairMultiLucyRXKokkos<DeviceType>::pack_forward_comm(int n, int *list, double *buf, int pbc_flag, int *pbc)
+int PairMultiLucyRXKokkos<DeviceType>::pack_forward_comm(int n, int *list, double *buf,
+                                                         int /*pbc_flag*/, int * /*pbc*/)
 {
   int i,j,m;
 
@@ -719,6 +721,8 @@ template<class DeviceType>
 void PairMultiLucyRXKokkos<DeviceType>::unpack_forward_comm(int n, int first, double *buf)
 {
   int i,m,last;
+
+  atomKK->sync(Host,DPDRHO_MASK);
 
   m = 0;
   last = first + n;
@@ -748,6 +752,8 @@ template<class DeviceType>
 void PairMultiLucyRXKokkos<DeviceType>::unpack_reverse_comm(int n, int *list, double *buf)
 {
   int i,j,m;
+
+  atomKK->sync(Host,DPDRHO_MASK);
 
   m = 0;
   for (i = 0; i < n; i++) {
@@ -881,15 +887,15 @@ void PairMultiLucyRXKokkos<DeviceType>::create_kokkos_tables()
     h_table->innersq[i] = tb->innersq;
     h_table->invdelta[i] = tb->invdelta;
 
-    for(int j = 0; j<h_table->rsq.extent(1); j++)
+    for(int j = 0; j < (int)h_table->rsq.extent(1); j++)
       h_table->rsq(i,j) = tb->rsq[j];
-    for(int j = 0; j<h_table->e.extent(1); j++)
+    for(int j = 0; j < (int)h_table->e.extent(1); j++)
       h_table->e(i,j) = tb->e[j];
-    for(int j = 0; j<h_table->de.extent(1); j++)
+    for(int j = 0; j < (int)h_table->de.extent(1); j++)
       h_table->de(i,j) = tb->de[j];
-    for(int j = 0; j<h_table->f.extent(1); j++)
+    for(int j = 0; j < (int)h_table->f.extent(1); j++)
       h_table->f(i,j) = tb->f[j];
-    for(int j = 0; j<h_table->df.extent(1); j++)
+    for(int j = 0; j < (int)h_table->df.extent(1); j++)
       h_table->df(i,j) = tb->df[j];
   }
 
@@ -953,7 +959,7 @@ void PairMultiLucyRXKokkos<DeviceType>::settings(int narg, char **arg)
   else if (strcmp(arg[0],"linear") == 0) tabstyle = LINEAR;
   else error->all(FLERR,"Unknown table style in pair_style command");
 
-  tablength = force->inumeric(FLERR,arg[1]);
+  tablength = utils::inumeric(FLERR,arg[1],false,lmp);
   if (tablength < 2) error->all(FLERR,"Illegal number of pair table entries");
 
   // optional keywords
@@ -980,14 +986,14 @@ void PairMultiLucyRXKokkos<DeviceType>::settings(int narg, char **arg)
   allocated = 0;
 
   ntables = 0;
-  tables = NULL;
+  tables = nullptr;
 }
 
 /* ---------------------------------------------------------------------- */
 
 namespace LAMMPS_NS {
 template class PairMultiLucyRXKokkos<LMPDeviceType>;
-#ifdef KOKKOS_ENABLE_CUDA
+#ifdef LMP_KOKKOS_GPU
 template class PairMultiLucyRXKokkos<LMPHostType>;
 #endif
 }

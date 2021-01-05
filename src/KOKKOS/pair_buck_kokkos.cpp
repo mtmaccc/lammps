@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -42,11 +42,12 @@ PairBuckKokkos<DeviceType>::PairBuckKokkos(LAMMPS *lmp) : PairBuck(lmp)
 {
   respa_enable = 0;
 
+  kokkosable = 1;
   atomKK = (AtomKokkos *) atom;
   execution_space = ExecutionSpaceFromDevice<DeviceType>::space;
   datamask_read = X_MASK | F_MASK | TYPE_MASK | ENERGY_MASK | VIRIAL_MASK;
   datamask_modify = F_MASK | ENERGY_MASK | VIRIAL_MASK;
-  cutsq = NULL;
+  cutsq = nullptr;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -59,9 +60,9 @@ PairBuckKokkos<DeviceType>::~PairBuckKokkos()
     memoryKK->destroy_kokkos(k_vatom,vatom);
     k_cutsq = DAT::tdual_ffloat_2d();
     memory->sfree(cutsq);
-    eatom = NULL;
-    vatom = NULL;
-    cutsq = NULL;
+    eatom = nullptr;
+    vatom = nullptr;
+    cutsq = nullptr;
   }
 }
 
@@ -264,7 +265,7 @@ double PairBuckKokkos<DeviceType>::init_one(int i, int j)
 
 namespace LAMMPS_NS {
 template class PairBuckKokkos<LMPDeviceType>;
-#ifdef KOKKOS_ENABLE_CUDA
+#ifdef LMP_KOKKOS_GPU
 template class PairBuckKokkos<LMPHostType>;
 #endif
 }

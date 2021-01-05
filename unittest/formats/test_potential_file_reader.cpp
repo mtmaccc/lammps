@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -13,7 +13,6 @@
 
 #include "MANYBODY/pair_comb.h"
 #include "MANYBODY/pair_comb3.h"
-#include "MANYBODY/pair_eim.h"
 #include "MANYBODY/pair_gw.h"
 #include "MANYBODY/pair_gw_zbl.h"
 #include "MANYBODY/pair_nb3b_harmonic.h"
@@ -24,18 +23,41 @@
 #include "MANYBODY/pair_tersoff_zbl.h"
 #include "MANYBODY/pair_vashishta.h"
 #include "USER-MISC/pair_tersoff_table.h"
+#include "info.h"
 #include "input.h"
-#include "lammps.h"
 #include "potential_file_reader.h"
-#include "utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include <cstring>
+#include <iostream>
 #include <mpi.h>
+#include <vector>
+
+#if defined(OMPI_MAJOR_VERSION)
+const bool have_openmpi = true;
+#else
+const bool have_openmpi = false;
+#endif
 
 using namespace LAMMPS_NS;
+using ::testing::MatchesRegex;
 using utils::split_words;
+
+#define TEST_FAILURE(errmsg, ...)                                 \
+    if (Info::has_exceptions()) {                                 \
+        ::testing::internal::CaptureStdout();                     \
+        ASSERT_ANY_THROW({__VA_ARGS__});                          \
+        auto mesg = ::testing::internal::GetCapturedStdout();     \
+        ASSERT_THAT(mesg, MatchesRegex(errmsg));                  \
+    } else {                                                      \
+        if (!have_openmpi) {                                      \
+            ::testing::internal::CaptureStdout();                 \
+            ASSERT_DEATH({__VA_ARGS__}, "");                      \
+            auto mesg = ::testing::internal::GetCapturedStdout(); \
+            ASSERT_THAT(mesg, MatchesRegex(errmsg));              \
+        }                                                         \
+    }
 
 // whether to print verbose output (i.e. not capturing LAMMPS screen output).
 bool verbose = false;
@@ -76,7 +98,8 @@ protected:
     }
 };
 
-TEST_F(PotentialFileReaderTest, Sw)
+// open for native units
+TEST_F(PotentialFileReaderTest, Sw_native)
 {
     if (!verbose) ::testing::internal::CaptureStdout();
     lmp->input->one("units metal");
@@ -85,6 +108,29 @@ TEST_F(PotentialFileReaderTest, Sw)
 
     auto line = reader.next_line(PairSW::NPARAMS_PER_LINE);
     ASSERT_EQ(utils::count_words(line), PairSW::NPARAMS_PER_LINE);
+}
+
+// open with supported conversion enabled
+TEST_F(PotentialFileReaderTest, Sw_conv)
+{
+    if (!verbose) ::testing::internal::CaptureStdout();
+    lmp->input->one("units real");
+    PotentialFileReader reader(lmp, "Si.sw", "Stillinger-Weber", utils::METAL2REAL);
+    if (!verbose) ::testing::internal::GetCapturedStdout();
+
+    auto line = reader.next_line(PairSW::NPARAMS_PER_LINE);
+    ASSERT_EQ(utils::count_words(line), PairSW::NPARAMS_PER_LINE);
+}
+
+// open without conversion enabled
+TEST_F(PotentialFileReaderTest, Sw_noconv)
+{
+    if (!verbose) ::testing::internal::CaptureStdout();
+    lmp->input->one("units real");
+    if (!verbose) ::testing::internal::GetCapturedStdout();
+
+    TEST_FAILURE(".*ERROR on proc.*potential.*requires metal units but real.*",
+                 PotentialFileReader reader(lmp, "Si.sw", "Stillinger-Weber", utils::REAL2METAL););
 }
 
 TEST_F(PotentialFileReaderTest, Comb)
@@ -241,7 +287,7 @@ TEST_F(PotentialFileReaderTest, UnitConvert)
     delete reader;
 
     if (!verbose) ::testing::internal::CaptureStdout();
-    flag   = utils::get_supported_conversions(utils::ENERGY);
+    flag = utils::get_supported_conversions(utils::ENERGY);
     lmp->input->one("units real");
     reader = new PotentialFileReader(lmp, "Si.sw", "Stillinger-Weber", flag);
     if (!verbose) ::testing::internal::GetCapturedStdout();
@@ -255,6 +301,10 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
     ::testing::InitGoogleMock(&argc, argv);
+
+    if (have_openmpi && !LAMMPS_NS::Info::has_exceptions())
+        std::cout << "Warning: using OpenMPI without exceptions. "
+                     "Death tests will be skipped\n";
 
     // handle arguments passed via environment variable
     if (const char *var = getenv("TEST_ARGS")) {

@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -16,22 +16,20 @@
 ------------------------------------------------------------------------- */
 
 #include "ewald_dipole.h"
-#include <mpi.h>
-#include <cstring>
-#include <string>
-#include <cmath>
+
 #include "atom.h"
 #include "comm.h"
-#include "force.h"
-#include "pair.h"
 #include "domain.h"
+#include "error.h"
+#include "force.h"
 #include "math_const.h"
 #include "math_special.h"
 #include "memory.h"
-#include "error.h"
+#include "pair.h"
 #include "update.h"
-#include "utils.h"
-#include "fmt/format.h"
+
+#include <cmath>
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
@@ -42,12 +40,12 @@ using namespace MathSpecial;
 /* ---------------------------------------------------------------------- */
 
 EwaldDipole::EwaldDipole(LAMMPS *lmp) : Ewald(lmp),
-  tk(NULL), vc(NULL)
+  tk(nullptr), vc(nullptr)
 {
   ewaldflag = dipoleflag = 1;
   group_group_enable = 0;
-  tk = NULL;
-  vc = NULL;
+  tk = nullptr;
+  vc = nullptr;
 }
 
 /* ----------------------------------------------------------------------
@@ -114,7 +112,7 @@ void EwaldDipole::init()
 
   int itmp;
   double *p_cutoff = (double *) force->pair->extract("cut_coul",itmp);
-  if (p_cutoff == NULL)
+  if (p_cutoff == nullptr)
     error->all(FLERR,"KSpace style is incompatible with Pair style");
   double cutoff = *p_cutoff;
 
@@ -192,10 +190,10 @@ void EwaldDipole::init()
   // stats
 
   if (comm->me == 0) {
-    std::string mesg = fmt::format("  G vector (1/distance) = {}\n",g_ewald);
-    mesg += fmt::format("  estimated absolute RMS force accuracy = {}\n",
+    std::string mesg = fmt::format("  G vector (1/distance) = {:.8g}\n",g_ewald);
+    mesg += fmt::format("  estimated absolute RMS force accuracy = {:.8g}\n",
                        estimated_accuracy);
-    mesg += fmt::format("  estimated relative force accuracy = {}\n",
+    mesg += fmt::format("  estimated relative force accuracy = {:.8g}\n",
                        estimated_accuracy/two_charge_force);
     mesg += fmt::format("  KSpace vectors: actual max1d max3d = {} {} {}\n",
                         kcount,kmax,kmax3d);

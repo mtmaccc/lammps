@@ -144,6 +144,7 @@ accelerated styles exist.
 * :doc:`coul/slater/long <pair_coul>` - long-range smeared out Coulomb
 * :doc:`coul/shield <pair_coul_shield>` - Coulomb for boron nitride for use with :doc:`ilp/graphene/hbn <pair_ilp_graphene_hbn>` potential
 * :doc:`coul/streitz <pair_coul>` - Coulomb via Streitz/Mintmire Slater orbitals
+* :doc:`coul/tt <pair_coul_tt>` - damped charge-dipole Coulomb for Drude dipoles
 * :doc:`coul/wolf <pair_coul>` - Coulomb via Wolf potential
 * :doc:`coul/wolf/cs <pair_cs>` - Coulomb via Wolf potential with core/shell adjustments
 * :doc:`dpd <pair_dpd>` - dissipative particle dynamics (DPD)
@@ -201,21 +202,21 @@ accelerated styles exist.
 * :doc:`lj/class2/soft <pair_fep_soft>` - COMPASS (class 2) force field with no Coulomb with a soft core
 * :doc:`lj/cubic <pair_lj_cubic>` - LJ with cubic after inflection point
 * :doc:`lj/cut <pair_lj>` - cutoff Lennard-Jones potential without Coulomb
-* :doc:`lj/cut/coul/cut <pair_lj>` - LJ with cutoff Coulomb
+* :doc:`lj/cut/coul/cut <pair_lj_cut_coul>` - LJ with cutoff Coulomb
 * :doc:`lj/cut/coul/cut/soft <pair_fep_soft>` - LJ with cutoff Coulomb with a soft core
-* :doc:`lj/cut/coul/debye <pair_lj>` - LJ with Debye screening added to Coulomb
-* :doc:`lj/cut/coul/dsf <pair_lj>` - LJ with Coulomb via damped shifted forces
-* :doc:`lj/cut/coul/long <pair_lj>` - LJ with long-range Coulomb
+* :doc:`lj/cut/coul/debye <pair_lj_cut_coul>` - LJ with Debye screening added to Coulomb
+* :doc:`lj/cut/coul/dsf <pair_lj_cut_coul>` - LJ with Coulomb via damped shifted forces
+* :doc:`lj/cut/coul/long <pair_lj_cut_coul>` - LJ with long-range Coulomb
 * :doc:`lj/cut/coul/long/cs <pair_cs>` - LJ with long-range Coulomb with core/shell adjustments
 * :doc:`lj/cut/coul/long/soft <pair_fep_soft>` - LJ with long-range Coulomb with a soft core
-* :doc:`lj/cut/coul/msm <pair_lj>` - LJ with long-range MSM Coulomb
-* :doc:`lj/cut/coul/wolf <pair_lj>` - LJ with Coulomb via Wolf potential
+* :doc:`lj/cut/coul/msm <pair_lj_cut_coul>` - LJ with long-range MSM Coulomb
+* :doc:`lj/cut/coul/wolf <pair_lj_cut_coul>` - LJ with Coulomb via Wolf potential
 * :doc:`lj/cut/dipole/cut <pair_dipole>` - point dipoles with cutoff
 * :doc:`lj/cut/dipole/long <pair_dipole>` - point dipoles with long-range Ewald
 * :doc:`lj/cut/soft <pair_fep_soft>` - LJ with a soft core
 * :doc:`lj/cut/thole/long <pair_thole>` - LJ with Coulomb with thole damping
-* :doc:`lj/cut/tip4p/cut <pair_lj>` - LJ with cutoff Coulomb for TIP4P water
-* :doc:`lj/cut/tip4p/long <pair_lj>` - LJ with long-range Coulomb for TIP4P water
+* :doc:`lj/cut/tip4p/cut <pair_lj_cut_tip4p>` - LJ with cutoff Coulomb for TIP4P water
+* :doc:`lj/cut/tip4p/long <pair_lj_cut_tip4p>` - LJ with long-range Coulomb for TIP4P water
 * :doc:`lj/cut/tip4p/long/soft <pair_fep_soft>` - LJ with cutoff Coulomb for TIP4P water with a soft core
 * :doc:`lj/expand <pair_lj_expand>` - Lennard-Jones for variable size particles
 * :doc:`lj/expand/coul/long <pair_lj_expand>` - Lennard-Jones for variable size particles with long-range Coulomb
@@ -304,6 +305,7 @@ accelerated styles exist.
 * :doc:`spin/dipole/long <pair_spin_dipole>` -
 * :doc:`spin/dmi <pair_spin_dmi>` -
 * :doc:`spin/exchange <pair_spin_exchange>` -
+* :doc:`spin/exchange/biquadratic <pair_spin_exchange>` -
 * :doc:`spin/magelec <pair_spin_magelec>` -
 * :doc:`spin/neel <pair_spin_neel>` -
 * :doc:`srp <pair_srp>` -

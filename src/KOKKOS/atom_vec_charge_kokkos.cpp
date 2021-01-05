@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -12,26 +12,24 @@
 ------------------------------------------------------------------------- */
 
 #include "atom_vec_charge_kokkos.h"
+
 #include "atom_kokkos.h"
+#include "atom_masks.h"
 #include "comm_kokkos.h"
 #include "domain.h"
-#include "modify.h"
-#include "fix.h"
-#include "atom_masks.h"
-#include "memory_kokkos.h"
 #include "error.h"
-#include "utils.h"
+#include "fix.h"
+#include "memory_kokkos.h"
+#include "modify.h"
 
 using namespace LAMMPS_NS;
-
-#define DELTA 10
 
 /* ---------------------------------------------------------------------- */
 
 AtomVecChargeKokkos::AtomVecChargeKokkos(LAMMPS *lmp) : AtomVecKokkos(lmp)
 {
-  molecular = 0;
-  mass_type = 1;
+  molecular = Atom::ATOMIC;
+  mass_type = PER_TYPE;
 
   comm_x_only = comm_f_only = 1;
   size_forward = 3;
@@ -58,6 +56,7 @@ AtomVecChargeKokkos::AtomVecChargeKokkos(LAMMPS *lmp) : AtomVecKokkos(lmp)
 
 void AtomVecChargeKokkos::grow(int n)
 {
+  auto DELTA = LMP_KOKKOS_AV_DELTA;
   int step = MAX(DELTA,nmax*0.01);
   if (n == 0) nmax += step;
   else nmax = n;
@@ -1048,9 +1047,9 @@ int AtomVecChargeKokkos::write_data_hybrid(FILE *fp, double *buf)
    return # of bytes of allocated memory
 ------------------------------------------------------------------------- */
 
-bigint AtomVecChargeKokkos::memory_usage()
+double AtomVecChargeKokkos::memory_usage()
 {
-  bigint bytes = 0;
+  double bytes = 0;
 
   if (atom->memcheck("tag")) bytes += memory->usage(tag,nmax);
   if (atom->memcheck("type")) bytes += memory->usage(type,nmax);
@@ -1132,7 +1131,7 @@ void AtomVecChargeKokkos::sync_overlapping_device(ExecutionSpace space, unsigned
       perform_async_copy<DAT::tdual_int_1d>(atomKK->k_mask,space);
     if ((mask & IMAGE_MASK) && atomKK->k_image.need_sync<LMPDeviceType>())
       perform_async_copy<DAT::tdual_imageint_1d>(atomKK->k_image,space);
-    if ((mask & MOLECULE_MASK) && atomKK->k_q.need_sync<LMPDeviceType>())
+    if ((mask & Q_MASK) && atomKK->k_q.need_sync<LMPDeviceType>())
       perform_async_copy<DAT::tdual_float_1d>(atomKK->k_q,space);
   } else {
     if ((mask & X_MASK) && atomKK->k_x.need_sync<LMPHostType>())
@@ -1149,7 +1148,7 @@ void AtomVecChargeKokkos::sync_overlapping_device(ExecutionSpace space, unsigned
       perform_async_copy<DAT::tdual_int_1d>(atomKK->k_mask,space);
     if ((mask & IMAGE_MASK) && atomKK->k_image.need_sync<LMPHostType>())
       perform_async_copy<DAT::tdual_imageint_1d>(atomKK->k_image,space);
-    if ((mask & MOLECULE_MASK) && atomKK->k_q.need_sync<LMPHostType>())
+    if ((mask & Q_MASK) && atomKK->k_q.need_sync<LMPHostType>())
       perform_async_copy<DAT::tdual_float_1d>(atomKK->k_q,space);
   }
 }

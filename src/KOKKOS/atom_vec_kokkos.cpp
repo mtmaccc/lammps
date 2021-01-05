@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -12,11 +12,12 @@
 ------------------------------------------------------------------------- */
 
 #include "atom_vec_kokkos.h"
+
 #include "atom_kokkos.h"
-#include "comm_kokkos.h"
-#include "domain.h"
 #include "atom_masks.h"
-#include "utils.h"
+#include "comm_kokkos.h"
+#include "error.h"
+#include "domain.h"
 
 using namespace LAMMPS_NS;
 
@@ -25,11 +26,27 @@ using namespace LAMMPS_NS;
 AtomVecKokkos::AtomVecKokkos(LAMMPS *lmp) : AtomVec(lmp)
 {
   kokkosable = 1;
-  buffer = NULL;
+  buffer = nullptr;
   buffer_size = 0;
 
   no_comm_vel_flag = 0;
   no_border_vel_flag = 1;
+}
+
+/* ----------------------------------------------------------------------
+   roundup N so it is a multiple of DELTA
+   error if N exceeds 32-bit int, since will be used as arg to grow()
+   overload needed because Kokkos uses a smaller DELTA than in atom_vec.cpp
+   and an exponential instead of a linear growth
+------------------------------------------------------------------------- */
+
+bigint AtomVecKokkos::roundup(bigint n)
+{
+  auto DELTA = LMP_KOKKOS_AV_DELTA;
+  if (n % DELTA) n = n/DELTA * DELTA + DELTA;
+  if (n > MAXSMALLINT)
+    error->one(FLERR,"Too many atoms created on one or more procs");
+  return n;
 }
 
 /* ---------------------------------------------------------------------- */

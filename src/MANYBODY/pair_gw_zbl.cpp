@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -17,21 +17,18 @@
 ------------------------------------------------------------------------- */
 
 #include "pair_gw_zbl.h"
-#include <mpi.h>
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include "atom.h"
-#include "update.h"
-#include "force.h"
-#include "comm.h"
-#include "memory.h"
-#include "error.h"
-#include "utils.h"
-#include "tokenizer.h"
-#include "potential_file_reader.h"
 
+#include "comm.h"
+#include "error.h"
 #include "math_const.h"
+#include "memory.h"
+#include "potential_file_reader.h"
+#include "tokenizer.h"
+#include "update.h"
+
+#include <cmath>
+#include <cstring>
+
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
@@ -64,13 +61,13 @@ PairGWZBL::PairGWZBL(LAMMPS *lmp) : PairGW(lmp)
 void PairGWZBL::read_file(char *file)
 {
   memory->sfree(params);
-  params = NULL;
+  params = nullptr;
   nparams = maxparam = 0;
 
   // open file on proc 0
 
   if (comm->me == 0) {
-    PotentialFileReader reader(lmp, file, "GW/ZBL", unit_convert_flag);
+    PotentialFileReader reader(lmp, file, "gw/zbl", unit_convert_flag);
     char * line;
 
     // transparently convert units for supported conversions
@@ -107,6 +104,11 @@ void PairGWZBL::read_file(char *file)
           maxparam += DELTA;
           params = (Param *) memory->srealloc(params,maxparam*sizeof(Param),
                                               "pair:params");
+
+          // make certain all addional allocated storage is initialized
+          // to avoid false positives when checking with valgrind
+
+          memset(params + nparams, 0, DELTA*sizeof(Param));
         }
 
         params[nparams].ielement = ielement;
@@ -136,7 +138,7 @@ void PairGWZBL::read_file(char *file)
           params[nparams].biga *= conversion_factor;
           params[nparams].bigb *= conversion_factor;
         }
-      } catch (TokenizerException & e) {
+      } catch (TokenizerException &e) {
         error->one(FLERR, e.what());
       }
 

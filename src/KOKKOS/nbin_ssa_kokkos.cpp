@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -41,7 +41,6 @@ NBinSSAKokkos<DeviceType>::NBinSSAKokkos(LAMMPS *lmp) : NBinStandard(lmp)
   d_lbinxhi = typename AT::t_int_scalar("NBinSSAKokkos::d_lbinxhi");
   d_lbinyhi = typename AT::t_int_scalar("NBinSSAKokkos::d_lbinyhi");
   d_lbinzhi = typename AT::t_int_scalar("NBinSSAKokkos::d_lbinzhi");
-#ifndef KOKKOS_USE_CUDA_UVM
   h_resize = Kokkos::create_mirror_view(d_resize);
   h_lbinxlo = Kokkos::create_mirror_view(d_lbinxlo);
   h_lbinylo = Kokkos::create_mirror_view(d_lbinylo);
@@ -49,15 +48,6 @@ NBinSSAKokkos<DeviceType>::NBinSSAKokkos(LAMMPS *lmp) : NBinStandard(lmp)
   h_lbinxhi = Kokkos::create_mirror_view(d_lbinxhi);
   h_lbinyhi = Kokkos::create_mirror_view(d_lbinyhi);
   h_lbinzhi = Kokkos::create_mirror_view(d_lbinzhi);
-#else
-  h_resize = d_resize;
-  h_lbinxlo = d_lbinxlo;
-  h_lbinylo = d_lbinylo;
-  h_lbinzlo = d_lbinzlo;
-  h_lbinxhi = d_lbinxhi;
-  h_lbinyhi = d_lbinyhi;
-  h_lbinzhi = d_lbinzhi;
-#endif
   h_resize() = 1;
 
   k_gbincount = DAT::tdual_int_1d("NBinSSAKokkos::gbincount",8);
@@ -67,7 +57,7 @@ NBinSSAKokkos<DeviceType>::NBinSSAKokkos(LAMMPS *lmp) : NBinStandard(lmp)
 /* ---------------------------------------------------------------------- */
 
 template<class DeviceType>
-void NBinSSAKokkos<DeviceType>::bin_atoms_setup(int nall)
+void NBinSSAKokkos<DeviceType>::bin_atoms_setup(int /*nall*/)
 {
   if (mbins > (int) k_bins.h_view.extent(0)) {
     k_bins = DAT::tdual_int_2d("NBinSSAKokkos::bins",mbins,atoms_per_bin);
@@ -298,7 +288,7 @@ void NBinSSAKokkos<DeviceType>::sortBin(
 
 namespace LAMMPS_NS {
 template class NBinSSAKokkos<LMPDeviceType>;
-#ifdef KOKKOS_ENABLE_CUDA
+#ifdef LMP_KOKKOS_GPU
 template class NBinSSAKokkos<LMPHostType>;
 #endif
 }

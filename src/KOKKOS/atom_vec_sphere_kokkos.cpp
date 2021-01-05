@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -12,32 +12,29 @@
 ------------------------------------------------------------------------- */
 
 #include "atom_vec_sphere_kokkos.h"
-#include <cmath>
-#include <cstring>
+
 #include "atom_kokkos.h"
 #include "atom_masks.h"
 #include "comm_kokkos.h"
 #include "domain.h"
-#include "modify.h"
+#include "error.h"
 #include "fix.h"
 #include "fix_adapt.h"
 #include "math_const.h"
 #include "memory.h"
-#include "error.h"
 #include "memory_kokkos.h"
-#include "utils.h"
+#include "modify.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
-
-#define DELTA 10
-
-static const double MY_PI  = 3.14159265358979323846; // pi
+using namespace MathConst;
 
 /* ---------------------------------------------------------------------- */
 
 AtomVecSphereKokkos::AtomVecSphereKokkos(LAMMPS *lmp) : AtomVecKokkos(lmp)
 {
-  molecular = 0;
+  molecular = Atom::ATOMIC;
 
   comm_x_only = 1;
   comm_f_only = 0;
@@ -92,6 +89,7 @@ void AtomVecSphereKokkos::init()
 
 void AtomVecSphereKokkos::grow(int n)
 {
+  auto DELTA = LMP_KOKKOS_AV_DELTA;
   int step = MAX(DELTA,nmax*0.01);
   if (n == 0) nmax += step;
   else nmax = n;
@@ -2766,9 +2764,9 @@ int AtomVecSphereKokkos::write_vel_hybrid(FILE *fp, double *buf)
    return # of bytes of allocated memory
 ------------------------------------------------------------------------- */
 
-bigint AtomVecSphereKokkos::memory_usage()
+double AtomVecSphereKokkos::memory_usage()
 {
-  bigint bytes = 0;
+  double bytes = 0;
 
   if (atom->memcheck("tag")) bytes += memory->usage(tag,nmax);
   if (atom->memcheck("type")) bytes += memory->usage(type,nmax);

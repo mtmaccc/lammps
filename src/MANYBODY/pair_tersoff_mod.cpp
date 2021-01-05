@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -17,20 +17,17 @@
 ------------------------------------------------------------------------- */
 
 #include "pair_tersoff_mod.h"
-#include <mpi.h>
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include "atom.h"
-#include "force.h"
+
 #include "comm.h"
+#include "error.h"
 #include "math_const.h"
 #include "math_special.h"
 #include "memory.h"
-#include "error.h"
-#include "utils.h"
-#include "tokenizer.h"
 #include "potential_file_reader.h"
+#include "tokenizer.h"
+
+#include <cmath>
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
@@ -53,7 +50,7 @@ void PairTersoffMOD::read_file(char *file)
   // open file on proc 0
 
   if (comm->me == 0) {
-    PotentialFileReader reader(lmp, file, "TersoffMod", unit_convert_flag);
+    PotentialFileReader reader(lmp, file, "tersoff/mod", unit_convert_flag);
     char * line;
 
     // transparently convert units for supported conversions
@@ -91,6 +88,11 @@ void PairTersoffMOD::read_file(char *file)
           maxparam += DELTA;
           params = (Param *) memory->srealloc(params,maxparam*sizeof(Param),
                                               "pair:params");
+
+          // make certain all addional allocated storage is initialized
+          // to avoid false positives when checking with valgrind
+
+          memset(params + nparams, 0, DELTA*sizeof(Param));
         }
 
         params[nparams].ielement = ielement;
@@ -119,7 +121,7 @@ void PairTersoffMOD::read_file(char *file)
           params[nparams].biga *= conversion_factor;
           params[nparams].bigb *= conversion_factor;
         }
-      } catch (TokenizerException & e) {
+      } catch (TokenizerException &e) {
         error->one(FLERR, e.what());
       }
 

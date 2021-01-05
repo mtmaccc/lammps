@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale AtomicKokkos/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -20,18 +20,16 @@
 #include "atom_masks.h"
 #include "memory_kokkos.h"
 #include "error.h"
-#include "utils.h"
+
 
 using namespace LAMMPS_NS;
-
-#define DELTA 10
 
 /* ---------------------------------------------------------------------- */
 
 AtomVecDPDKokkos::AtomVecDPDKokkos(LAMMPS *lmp) : AtomVecKokkos(lmp)
 {
-  molecular = 0;
-  mass_type = 1;
+  molecular = Atom::ATOMIC;
+  mass_type = PER_TYPE;
 
   comm_x_only = comm_f_only = 0;
   size_forward = 7;
@@ -60,6 +58,7 @@ AtomVecDPDKokkos::AtomVecDPDKokkos(LAMMPS *lmp) : AtomVecKokkos(lmp)
 
 void AtomVecDPDKokkos::grow(int n)
 {
+  auto DELTA = LMP_KOKKOS_AV_DELTA;
   int step = MAX(DELTA,nmax*0.01);
   if (n == 0) nmax += step;
   else nmax = n;
@@ -1830,9 +1829,9 @@ int AtomVecDPDKokkos::write_data_hybrid(FILE *fp, double *buf)
    return # of bytes of allocated memory
 ------------------------------------------------------------------------- */
 
-bigint AtomVecDPDKokkos::memory_usage()
+double AtomVecDPDKokkos::memory_usage()
 {
-  bigint bytes = 0;
+  double bytes = 0;
 
   if (atom->memcheck("tag")) bytes += memory->usage(tag,nmax);
   if (atom->memcheck("type")) bytes += memory->usage(type,nmax);
