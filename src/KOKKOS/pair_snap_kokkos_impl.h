@@ -740,10 +740,10 @@ void PairSNAPKokkos<DeviceType, real_type, vector_length>::operator() (TagPairSN
   int flattened_idx = team.team_rank() + team.league_rank() * team_size_compute_ui;
 
   // extract neighbor index, iatom_div
-  const int iatom_div = flattened_idx / (max_neighs * (twojmax + 1));
+  int iatom_div = flattened_idx / (max_neighs * (twojmax + 1)); // removed "const" to work around GCC 7 bug
   const int jj_jbend = flattened_idx - iatom_div * (max_neighs * (twojmax + 1));
   const int jbend = jj_jbend / max_neighs;
-  const int jj = jj_jbend - jbend * max_neighs;
+  int jj = jj_jbend - jbend * max_neighs; // removed "const" to work around GCC 7 bug
 
   Kokkos::parallel_for(Kokkos::ThreadVectorRange(team, vector_length),
     [&] (const int iatom_mod) {
@@ -861,10 +861,10 @@ void PairSNAPKokkos<DeviceType, real_type, vector_length>::operator() (TagPairSN
   int flattened_idx = team.team_rank() + team.league_rank() * team_size_compute_fused_deidrj;
 
   // extract neighbor index, iatom_div
-  const int iatom_div = flattened_idx / (max_neighs * (twojmax + 1));
+  int iatom_div = flattened_idx / (max_neighs * (twojmax + 1)); // removed "const" to work around GCC 7 bug
   const int jj_jbend = flattened_idx - iatom_div * (max_neighs * (twojmax + 1));
   const int jbend = jj_jbend / max_neighs;
-  const int jj = jj_jbend - jbend * max_neighs;
+  int jj = jj_jbend - jbend * max_neighs; // removed "const" to work around GCC 7 bug
 
   Kokkos::parallel_for(Kokkos::ThreadVectorRange(team, vector_length),
     [&] (const int iatom_mod) {
@@ -949,7 +949,7 @@ void PairSNAPKokkos<DeviceType, real_type, vector_length>::operator() (TagPairSN
   int ninside = 0;
   Kokkos::parallel_reduce(Kokkos::TeamThreadRange(team,num_neighs),
       [&] (const int jj, int& count) {
-    Kokkos::single(Kokkos::PerThread(team), [&] (){
+    Kokkos::single(Kokkos::PerThread(team), [&] () {
       T_INT j = d_neighbors(i,jj);
       const F_FLOAT dx = x(j,0) - xtmp;
       const F_FLOAT dy = x(j,1) - ytmp;
@@ -1166,7 +1166,7 @@ void PairSNAPKokkos<DeviceType, real_type, vector_length>::operator() (TagPairSN
     fij[1] = my_sna.dedr(ii,jj,1);
     fij[2] = my_sna.dedr(ii,jj,2);
 
-    Kokkos::single(Kokkos::PerThread(team), [&] (){
+    Kokkos::single(Kokkos::PerThread(team), [&] () {
       a_f(i,0) += fij[0];
       a_f(i,1) += fij[1];
       a_f(i,2) += fij[2];
@@ -1323,7 +1323,7 @@ void PairSNAPKokkos<DeviceType, real_type, vector_length>::check_team_size_for(i
 
   team_size_max = Kokkos::TeamPolicy<DeviceType,TagStyle>(inum,Kokkos::AUTO).team_size_max(*this,Kokkos::ParallelForTag());
 
-  if(team_size*vector_length > team_size_max)
+  if (team_size*vector_length > team_size_max)
     team_size = team_size_max/vector_length;
 }
 
@@ -1334,7 +1334,7 @@ void PairSNAPKokkos<DeviceType, real_type, vector_length>::check_team_size_reduc
 
   team_size_max = Kokkos::TeamPolicy<DeviceType,TagStyle>(inum,Kokkos::AUTO).team_size_max(*this,Kokkos::ParallelReduceTag());
 
-  if(team_size*vector_length > team_size_max)
+  if (team_size*vector_length > team_size_max)
     team_size = team_size_max/vector_length;
 }
 

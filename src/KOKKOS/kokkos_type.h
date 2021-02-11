@@ -1068,9 +1068,9 @@ void memset_kokkos (ViewType &view) {
 
 struct params_lj_coul {
   KOKKOS_INLINE_FUNCTION
-  params_lj_coul(){cut_ljsq=0;cut_coulsq=0;lj1=0;lj2=0;lj3=0;lj4=0;offset=0;};
+  params_lj_coul() {cut_ljsq=0;cut_coulsq=0;lj1=0;lj2=0;lj3=0;lj4=0;offset=0;};
   KOKKOS_INLINE_FUNCTION
-  params_lj_coul(int /*i*/){cut_ljsq=0;cut_coulsq=0;lj1=0;lj2=0;lj3=0;lj4=0;offset=0;};
+  params_lj_coul(int /*i*/) {cut_ljsq=0;cut_coulsq=0;lj1=0;lj2=0;lj3=0;lj4=0;offset=0;};
   F_FLOAT cut_ljsq,cut_coulsq,lj1,lj2,lj3,lj4,offset;
 };
 
@@ -1154,11 +1154,7 @@ typedef SNAComplex<SNAreal> SNAcomplex;
 #define ISFINITE(x) std::isfinite(x)
 #endif
 
-#ifdef LMP_KOKKOS_GPU
-#define LAMMPS_LAMBDA [=] __device__
-#else
-#define LAMMPS_LAMBDA [=]
-#endif
+#define LAMMPS_LAMBDA KOKKOS_LAMBDA
 
 #ifdef LMP_KOKKOS_GPU
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)

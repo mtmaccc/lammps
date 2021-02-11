@@ -536,7 +536,7 @@ void PairGranular::compute(int eflag, int vflag)
         }
 
         if (roll_model[itype][jtype] != ROLL_NONE ||
-            twist_model[itype][jtype] != TWIST_NONE){
+            twist_model[itype][jtype] != TWIST_NONE) {
           relrot1 = omega[i][0] - omega[j][0];
           relrot2 = omega[i][1] - omega[j][1];
           relrot3 = omega[i][2] - omega[j][2];
@@ -1759,7 +1759,7 @@ void PairGranular::unpack_forward_comm(int n, int first, double *buf)
 
 double PairGranular::memory_usage()
 {
-  double bytes = nmax * sizeof(double);
+  double bytes = (double)nmax * sizeof(double);
   return bytes;
 }
 

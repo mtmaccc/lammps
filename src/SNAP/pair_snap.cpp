@@ -177,7 +177,7 @@ void PairSNAP::compute(int eflag, int vflag)
 
     for (int jj = 0; jj < ninside; jj++) {
       int j = snaptr->inside[jj];
-      if(chemflag)
+      if (chemflag)
         snaptr->compute_duidrj(snaptr->rij[jj], snaptr->wj[jj],
                                snaptr->rcutij[jj],jj, snaptr->element[jj]);
       else
@@ -344,7 +344,7 @@ void PairSNAP::compute_bispectrum()
     else
       snaptr->compute_bi(0);
 
-    for (int icoeff = 0; icoeff < ncoeff; icoeff++){
+    for (int icoeff = 0; icoeff < ncoeff; icoeff++) {
       bispectrum[ii][icoeff] = snaptr->blist[icoeff];
     }
   }
@@ -747,11 +747,11 @@ double PairSNAP::memory_usage()
   double bytes = Pair::memory_usage();
 
   int n = atom->ntypes+1;
-  bytes += n*n*sizeof(int);      // setflag
-  bytes += n*n*sizeof(double);   // cutsq
-  bytes += n*sizeof(int);        // map
-  bytes += beta_max*ncoeff*sizeof(double); // bispectrum
-  bytes += beta_max*ncoeff*sizeof(double); // beta
+  bytes += (double)n*n*sizeof(int);      // setflag
+  bytes += (double)n*n*sizeof(double);   // cutsq
+  bytes += (double)n*sizeof(int);        // map
+  bytes += (double)beta_max*ncoeff*sizeof(double); // bispectrum
+  bytes += (double)beta_max*ncoeff*sizeof(double); // beta
 
   bytes += snaptr->memory_usage(); // SNA object
 
