@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -11,27 +11,89 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
+#include "lmptype.h"
+#include "pointers.h"
 #include "utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <cerrno>
 #include <cstdio>
-#include <cstdlib>
 #include <string>
 #include <vector>
 
 using namespace LAMMPS_NS;
+using ::testing::EndsWith;
 using ::testing::Eq;
+using ::testing::StrEq;
+
+#if !defined(FLERR)
+#define FLERR __FILE__, __LINE__
+#endif
+
+TEST(Utils, strdup)
+{
+    std::string original("some_text");
+    const char *copy = utils::strdup(original);
+    ASSERT_THAT(original, StrEq(copy));
+    ASSERT_NE(copy, original.c_str());
+
+    const char *copy2 = utils::strdup(copy);
+    ASSERT_THAT(original, StrEq(copy2));
+    ASSERT_NE(copy, copy2);
+
+    delete[] copy;
+    delete[] copy2;
+}
+
+TEST(Utils, trim)
+{
+    auto trimmed = utils::trim("\t some text");
+    ASSERT_THAT(trimmed, StrEq("some text"));
+
+    trimmed = utils::trim("some text \r\n");
+    ASSERT_THAT(trimmed, StrEq("some text"));
+
+    trimmed = utils::trim("\v some text \f");
+    ASSERT_THAT(trimmed, StrEq("some text"));
+
+    trimmed = utils::trim("   some\t text    ");
+    ASSERT_THAT(trimmed, StrEq("some\t text"));
+
+    trimmed = utils::trim("  \t\n   ");
+    ASSERT_THAT(trimmed, StrEq(""));
+}
 
 TEST(Utils, trim_comment)
 {
     auto trimmed = utils::trim_comment("some text # comment");
-    ASSERT_THAT(trimmed, Eq("some text "));
+    ASSERT_THAT(trimmed, StrEq("some text "));
+}
+
+TEST(Utils, has_utf8)
+{
+    const char ascii_string[] = " -2";
+    const char utf8_string[]  = " −2";
+    ASSERT_FALSE(utils::has_utf8(ascii_string));
+    ASSERT_TRUE(utils::has_utf8(utf8_string));
+}
+
+TEST(Utils, utf8_subst)
+{
+    const char ascii_string[] = " -2";
+    const char utf8_string[]  = " −2";
+    auto ascii                = utils::utf8_subst(ascii_string);
+    auto utf8                 = utils::utf8_subst(utf8_string);
+    ASSERT_TRUE(ascii == utf8);
 }
 
 TEST(Utils, count_words)
 {
     ASSERT_EQ(utils::count_words("some text # comment"), 4);
+}
+
+TEST(Utils, count_words_string)
+{
+    ASSERT_EQ(utils::count_words(std::string("some text # comment")), 4);
 }
 
 TEST(Utils, count_words_non_default)
@@ -51,20 +113,47 @@ TEST(Utils, count_words_with_extra_spaces)
 
 TEST(Utils, split_words_simple)
 {
-    std::vector<std::string> list = utils::split_words("one two three");
+    auto list = utils::split_words("one two three");
     ASSERT_EQ(list.size(), 3);
+    ASSERT_THAT(list[0], StrEq("one"));
+    ASSERT_THAT(list[1], StrEq("two"));
+    ASSERT_THAT(list[2], StrEq("three"));
 }
 
 TEST(Utils, split_words_quoted)
 {
-    std::vector<std::string> list = utils::split_words("one 'two' \"three\"");
+    auto list = utils::split_words("one 'two' \"three\"");
     ASSERT_EQ(list.size(), 3);
+    ASSERT_THAT(list[0], StrEq("one"));
+    ASSERT_THAT(list[1], StrEq("two"));
+    ASSERT_THAT(list[2], StrEq("three"));
 }
 
 TEST(Utils, split_words_escaped)
 {
-    std::vector<std::string> list = utils::split_words("1\\' '\"two\"' 3\\\"");
+    auto list = utils::split_words("1\\' '\"two\"' 3\\\"");
     ASSERT_EQ(list.size(), 3);
+    ASSERT_THAT(list[0], StrEq("1\\'"));
+    ASSERT_THAT(list[1], StrEq("\"two\""));
+    ASSERT_THAT(list[2], StrEq("3\\\""));
+}
+
+TEST(Utils, split_words_quote_in_quoted)
+{
+    auto list = utils::split_words("one 't\\'wo' \"th\\\"ree\"");
+    ASSERT_EQ(list.size(), 3);
+    ASSERT_THAT(list[0], StrEq("one"));
+    ASSERT_THAT(list[1], StrEq("t\\'wo"));
+    ASSERT_THAT(list[2], StrEq("th\\\"ree"));
+}
+
+TEST(Utils, split_lines)
+{
+    auto list = utils::split_lines(" line 1\nline 2 \n line 3 \n");
+    ASSERT_EQ(list.size(), 3);
+    ASSERT_THAT(list[0], StrEq(" line 1"));
+    ASSERT_THAT(list[1], StrEq("line 2 "));
+    ASSERT_THAT(list[2], StrEq(" line 3 "));
 }
 
 TEST(Utils, valid_integer1)
@@ -207,6 +296,66 @@ TEST(Utils, signed_double_and_d_exponential)
     ASSERT_FALSE(utils::is_double("-10D-22"));
 }
 
+TEST(Utils, valid_id1)
+{
+    ASSERT_TRUE(utils::is_id("abc"));
+}
+
+TEST(Utils, valid_id2)
+{
+    ASSERT_TRUE(utils::is_id("123"));
+}
+
+TEST(Utils, valid_id3)
+{
+    ASSERT_TRUE(utils::is_id("abc123"));
+}
+
+TEST(Utils, valid_id4)
+{
+    ASSERT_TRUE(utils::is_id("abc_123"));
+}
+
+TEST(Utils, valid_id5)
+{
+    ASSERT_TRUE(utils::is_id("123_abc"));
+}
+
+TEST(Utils, valid_id6)
+{
+    ASSERT_TRUE(utils::is_id("_123"));
+}
+
+TEST(Utils, valid_id7)
+{
+    ASSERT_TRUE(utils::is_id("___"));
+}
+
+TEST(Utils, empty_id)
+{
+    ASSERT_FALSE(utils::is_id(""));
+}
+
+TEST(Utils, invalid_id1)
+{
+    ASSERT_FALSE(utils::is_id("+abc"));
+}
+
+TEST(Utils, invalid_id2)
+{
+    ASSERT_FALSE(utils::is_id("a[1]"));
+}
+
+TEST(Utils, invalid_id3)
+{
+    ASSERT_FALSE(utils::is_id("b(c)"));
+}
+
+TEST(Utils, invalid_id4)
+{
+    ASSERT_FALSE(utils::is_id("a$12"));
+}
+
 TEST(Utils, strmatch_beg)
 {
     ASSERT_TRUE(utils::strmatch("rigid/small/omp", "^rigid"));
@@ -272,9 +421,266 @@ TEST(Utils, strmatch_char_range)
     ASSERT_TRUE(utils::strmatch("rigid", "^[ip-s]+gid"));
 }
 
+TEST(Utils, strmatch_notchar_range)
+{
+    ASSERT_TRUE(utils::strmatch("rigid", "^[^a-g]+gid"));
+}
+
+TEST(Utils, strmatch_backslash)
+{
+    ASSERT_TRUE(utils::strmatch("\\rigid", "^\\W\\w+gid"));
+}
+
 TEST(Utils, strmatch_opt_range)
 {
-    ASSERT_TRUE(utils::strmatch("rigid", "^[0-9]*[p-s]igid"));
+    ASSERT_TRUE(utils::strmatch("rigid", "^[0-9]*[\\Wp-s]igid"));
+}
+
+TEST(Utils, strmatch_opt_char)
+{
+    ASSERT_TRUE(utils::strmatch("rigid", "^r?igid"));
+    ASSERT_TRUE(utils::strmatch("igid", "^r?igid"));
+}
+
+TEST(Utils, strmatch_dot)
+{
+    ASSERT_TRUE(utils::strmatch("rigid", ".igid"));
+    ASSERT_TRUE(utils::strmatch("Rigid", ".igid"));
+}
+
+TEST(Utils, strmatch_digit_nondigit)
+{
+    ASSERT_TRUE(utils::strmatch(" 5  angles\n", "^\\s*\\d+\\s+\\D+\\s"));
+}
+
+TEST(Utils, strmatch_integer_noninteger)
+{
+    ASSERT_TRUE(utils::strmatch(" -5  angles\n", "^\\s*\\i+\\s+\\I+\\s"));
+}
+
+TEST(Utils, strmatch_float_nonfloat)
+{
+    ASSERT_TRUE(utils::strmatch(" 5.0  angls\n", "^\\s*\\f+\\s+\\F+\\s"));
+}
+
+TEST(Utils, strmatch_whitespace_nonwhitespace)
+{
+    ASSERT_TRUE(utils::strmatch(" 5.0  angles\n", "^\\s*\\S+\\s+\\S+\\s"));
+}
+
+TEST(Utils, strfind_beg)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/omp", "^rigid"), StrEq("rigid"));
+}
+
+TEST(Utils, strfind_mid1)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/omp", ".small."), StrEq("/small/"));
+}
+
+TEST(Utils, strfind_mid2)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/ompXXX", "omp"), StrEq("omp"));
+}
+
+TEST(Utils, strfind_end)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/omp", "/omp$"), StrEq("/omp"));
+}
+
+TEST(Utils, no_strfind_beg)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/omp", "^small"), StrEq(""));
+}
+
+TEST(Utils, no_strfind_mid)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/omp", "none"), StrEq(""));
+}
+
+TEST(Utils, no_strfind_end)
+{
+    ASSERT_THAT(utils::strfind("rigid/small/omp", "/opt$"), StrEq(""));
+}
+
+TEST(Utils, strfind_whole_line)
+{
+    ASSERT_THAT(utils::strfind("ITEM: UNITS\n", "^\\s*ITEM: UNITS\\s*$"), StrEq("ITEM: UNITS\n"));
+}
+
+TEST(Utils, no_strfind_whole_line)
+{
+    ASSERT_THAT(utils::strfind("ITEM: UNITS\n", "^\\s*ITEM: UNIT\\s*$"), StrEq(""));
+}
+
+TEST(Utils, strfind_char_range)
+{
+    ASSERT_THAT(utils::strfind("rigidXXX", "^[ip-s]+gid"), StrEq("rigid"));
+}
+
+TEST(Utils, strfind_notchar_range)
+{
+    ASSERT_THAT(utils::strfind("rigidYYY", "^[^a-g]+gid"), StrEq("rigid"));
+}
+
+TEST(Utils, strfind_backslash)
+{
+    ASSERT_THAT(utils::strfind("\\rigidZZZ", "^\\W\\w+gid"), StrEq("\\rigid"));
+}
+
+TEST(Utils, strfind_opt_range)
+{
+    ASSERT_THAT(utils::strfind("rigidAAA", "^[0-9]*[\\Wp-s]igid"), StrEq("rigid"));
+}
+
+TEST(Utils, strfind_opt_char)
+{
+    ASSERT_THAT(utils::strfind("rigid111", "^r?igid"), StrEq("rigid"));
+    ASSERT_THAT(utils::strfind("igid222", "^r?igid"), StrEq("igid"));
+}
+
+TEST(Utils, strfind_dot)
+{
+    ASSERT_THAT(utils::strfind("AAArigidBBB", ".igid"), StrEq("rigid"));
+    ASSERT_THAT(utils::strfind("000Rigid111", ".igid"), StrEq("Rigid"));
+}
+
+TEST(Utils, strfind_kim)
+{
+    ASSERT_THAT(
+        utils::strfind("n3409jfse MO_004835508849_000 aslfjiaf", "[MS][MO]_\\d\\d\\d+_\\d\\d\\d"),
+        StrEq("MO_004835508849_000"));
+    ASSERT_THAT(utils::strfind("VanDuinChakraborty_2003_CHNO__SM_107643900657_000",
+                               "[MS][MO]_\\d\\d\\d+_\\d\\d\\d"),
+                StrEq("SM_107643900657_000"));
+}
+
+TEST(Utils, bounds_case1)
+{
+    int nlo, nhi;
+
+    nlo = nhi = -1;
+    utils::bounds(FLERR, "9", 0, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 9);
+    ASSERT_EQ(nhi, 9);
+    utils::bounds(FLERR, "1", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 1);
+    ASSERT_EQ(nhi, 1);
+    utils::bounds(FLERR, "1x", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+    utils::bounds(FLERR, "-1", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+    utils::bounds(FLERR, "+1", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+    utils::bounds(FLERR, "1:3", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+}
+
+TEST(Utils, bounds_case2)
+{
+    int nlo, nhi;
+
+    nlo = nhi = -1;
+    utils::bounds(FLERR, "*", 0, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 0);
+    ASSERT_EQ(nhi, 10);
+    utils::bounds(FLERR, "*", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -10);
+    ASSERT_EQ(nhi, 5);
+    utils::bounds(FLERR, "?", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+}
+
+TEST(Utils, bounds_case3)
+{
+    int nlo, nhi;
+
+    nlo = nhi = -1;
+    utils::bounds(FLERR, "2*", 0, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 2);
+    ASSERT_EQ(nhi, 10);
+    utils::bounds(FLERR, "3*", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 3);
+    ASSERT_EQ(nhi, 5);
+    utils::bounds(FLERR, "3*:2", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+}
+
+TEST(Utils, boundsbig_case1)
+{
+    bigint nlo, nhi;
+
+    nlo = nhi = -1;
+    utils::bounds(FLERR, "9", 0, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 9);
+    ASSERT_EQ(nhi, 9);
+    utils::bounds(FLERR, "1", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 1);
+    ASSERT_EQ(nhi, 1);
+    utils::bounds(FLERR, "1x", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+    utils::bounds(FLERR, "-1", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+    utils::bounds(FLERR, "+1", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+    utils::bounds(FLERR, "1:3", 1, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+}
+
+TEST(Utils, boundsbig_case2)
+{
+    bigint nlo, nhi;
+
+    nlo = nhi = -1;
+    utils::bounds(FLERR, "*", 0, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 0);
+    ASSERT_EQ(nhi, 10);
+    utils::bounds(FLERR, "*", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -10);
+    ASSERT_EQ(nhi, 5);
+    utils::bounds(FLERR, "?", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+}
+
+TEST(Utils, boundsbig_case3)
+{
+    bigint nlo, nhi;
+
+    nlo = nhi = -1;
+    utils::bounds(FLERR, "2*", 0, 10, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 2);
+    ASSERT_EQ(nhi, 10);
+    utils::bounds(FLERR, "3*", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, 3);
+    ASSERT_EQ(nhi, 5);
+    utils::bounds(FLERR, "3*:2", -10, 5, nlo, nhi, nullptr);
+    ASSERT_EQ(nlo, -1);
+    ASSERT_EQ(nhi, -1);
+}
+
+TEST(Utils, guesspath)
+{
+    char buf[256];
+    FILE *fp = fopen("test_guesspath.txt", "w");
+#if defined(__linux__)
+    const char *path = utils::guesspath(buf, sizeof(buf), fp);
+    ASSERT_THAT(path, EndsWith("test_guesspath.txt"));
+#else
+    const char *path = utils::guesspath(buf, sizeof(buf), fp);
+    ASSERT_THAT(path, EndsWith("(unknown)"));
+#endif
+    fclose(fp);
 }
 
 TEST(Utils, path_join)
@@ -291,9 +697,24 @@ TEST(Utils, path_basename)
 {
 #if defined(_WIN32)
     ASSERT_THAT(utils::path_basename("c:\\parent\\folder\\filename"), Eq("filename"));
+    ASSERT_THAT(utils::path_basename("folder\\"), Eq(""));
+    ASSERT_THAT(utils::path_basename("c:/parent/folder/filename"), Eq("filename"));
 #else
     ASSERT_THAT(utils::path_basename("/parent/folder/filename"), Eq("filename"));
+    ASSERT_THAT(utils::path_basename("/parent/folder/"), Eq(""));
 #endif
+}
+
+TEST(Utils, path_dirname)
+{
+#if defined(_WIN32)
+    ASSERT_THAT(utils::path_dirname("c:/parent/folder/filename"), Eq("c:/parent/folder"));
+    ASSERT_THAT(utils::path_dirname("c:\\parent\\folder\\filename"), Eq("c:\\parent\\folder"));
+    ASSERT_THAT(utils::path_dirname("c:filename"), Eq("."));
+#else
+    ASSERT_THAT(utils::path_dirname("/parent/folder/filename"), Eq("/parent/folder"));
+#endif
+    ASSERT_THAT(utils::path_dirname("filename"), Eq("."));
 }
 
 TEST(Utils, getsyserror)
@@ -352,7 +773,7 @@ TEST(Utils, unit_conversion)
     flag = utils::get_supported_conversions(utils::ENERGY);
     ASSERT_EQ(flag, utils::METAL2REAL | utils::REAL2METAL);
 
-    factor = utils::get_conversion_factor(utils::UNKNOWN, 1 << 30 - 1);
+    factor = utils::get_conversion_factor(utils::UNKNOWN, (1 << 30) - 1);
     ASSERT_DOUBLE_EQ(factor, 0.0);
     factor = utils::get_conversion_factor(utils::UNKNOWN, utils::NOCONVERT);
     ASSERT_DOUBLE_EQ(factor, 0.0);
@@ -362,4 +783,74 @@ TEST(Utils, unit_conversion)
     ASSERT_DOUBLE_EQ(factor, 23.060549);
     factor = utils::get_conversion_factor(utils::ENERGY, utils::REAL2METAL);
     ASSERT_DOUBLE_EQ(factor, 1.0 / 23.060549);
+}
+
+TEST(Utils, timespec2seconds_off)
+{
+    ASSERT_DOUBLE_EQ(utils::timespec2seconds("off"), -1.0);
+}
+
+TEST(Utils, timespec2seconds_ss)
+{
+    ASSERT_DOUBLE_EQ(utils::timespec2seconds("45"), 45.0);
+}
+
+TEST(Utils, timespec2seconds_mmss)
+{
+    ASSERT_DOUBLE_EQ(utils::timespec2seconds("10:45"), 645.0);
+}
+
+TEST(Utils, timespec2seconds_hhmmss)
+{
+    ASSERT_DOUBLE_EQ(utils::timespec2seconds("2:10:45"), 7845.0);
+}
+
+TEST(Utils, timespec2seconds_invalid)
+{
+    ASSERT_DOUBLE_EQ(utils::timespec2seconds("2:aa:45"), -1.0);
+}
+
+TEST(Utils, date2num)
+{
+    ASSERT_EQ(utils::date2num("1Jan05"), 20050101);
+    ASSERT_EQ(utils::date2num("10Feb2005"), 20050210);
+    ASSERT_EQ(utils::date2num("02Mar10"), 20100302);
+    ASSERT_EQ(utils::date2num(" 5Apr1900"), 19000405);
+    ASSERT_EQ(utils::date2num("10May22 "), 20220510);
+    ASSERT_EQ(utils::date2num("1 Jun 05"), 20050601);
+    ASSERT_EQ(utils::date2num("10 Jul 2005"), 20050710);
+    ASSERT_EQ(utils::date2num("02 Aug 10"), 20100802);
+    ASSERT_EQ(utils::date2num("  5  September  99"), 20990905);
+    ASSERT_EQ(utils::date2num("10October22 "), 20221010);
+    ASSERT_EQ(utils::date2num("30November 02"), 20021130);
+    ASSERT_EQ(utils::date2num("31December100"), 1001231);
+}
+
+static int compare(int a, int b, void *)
+{
+    if (a < b)
+        return -1;
+    else if (a > b)
+        return 1;
+    else
+        return 0;
+}
+
+TEST(Utils, merge_sort)
+{
+    int data[] = {773, 405, 490, 830, 632, 96,  428, 728, 912, 840, 878, 745, 213, 219, 249, 380,
+                  894, 758, 575, 690, 61,  849, 19,  577, 338, 569, 898, 873, 448, 940, 431, 780,
+                  472, 289, 65,  491, 641, 37,  367, 33,  407, 854, 594, 611, 845, 136, 107, 592,
+                  275, 865, 158, 626, 399, 703, 686, 734, 188, 559, 781, 558, 737, 281, 638, 664,
+                  533, 529, 62,  969, 595, 661, 837, 463, 624, 568, 615, 936, 206, 637, 91,  694,
+                  214, 872, 468, 66,  775, 949, 486, 576, 255, 961, 480, 138, 177, 509, 333, 705,
+                  10,  375, 321, 952, 210, 111, 475, 268, 708, 864, 244, 121, 988, 540, 942, 682,
+                  750, 473, 478, 714, 955, 911, 482, 384, 144, 757, 697, 791, 420, 605, 447, 320};
+
+    const int num = sizeof(data) / sizeof(int);
+    utils::merge_sort(data, num, nullptr, &compare);
+    bool sorted = true;
+    for (int i = 1; i < num; ++i)
+        if (data[i - 1] > data[i]) sorted = false;
+    ASSERT_TRUE(sorted);
 }

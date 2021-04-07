@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -11,17 +11,18 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
+/* ----------------------------------------------------------------------
+   Contributing author: Aidan Thompson (SNL)
+------------------------------------------------------------------------- */
+
 #include "mliap_model.h"
-#include "pair_mliap.h"
-#include <cstring>
-#include <cmath>
-#include "atom.h"
-#include "force.h"
+
 #include "comm.h"
-#include "utils.h"
-#include "neigh_list.h"
-#include "memory.h"
 #include "error.h"
+#include "memory.h"
+#include "tokenizer.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
 
@@ -30,11 +31,11 @@ using namespace LAMMPS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-MLIAPModel::MLIAPModel(LAMMPS* lmp, char* coefffilename) : Pointers(lmp)
+MLIAPModel::MLIAPModel(LAMMPS *lmp, char *) : Pointers(lmp)
 {
+  nparams = 0;
   nelements = 0;
-  coeffelem = NULL;
-  read_coeffs(coefffilename);
+  ndescriptors = 0;
   nonlinearflag = 0;
 }
 
@@ -42,7 +43,6 @@ MLIAPModel::MLIAPModel(LAMMPS* lmp, char* coefffilename) : Pointers(lmp)
 
 MLIAPModel::~MLIAPModel()
 {
-  memory->destroy(coeffelem);
 }
 
 /* ----------------------------------------------------------------------
@@ -53,21 +53,53 @@ void MLIAPModel::init()
 {
 }
 
+/* ----------------------------------------------------------------------
+   set number of elements
+   ---------------------------------------------------------------------- */
+
+void MLIAPModel::set_nelements(int nelements_in)
+{
+  nelements = nelements_in;
+}
+
+/* ----------------------------------------------------------------------
+   set number of descriptors
+   ---------------------------------------------------------------------- */
+
+void MLIAPModel::set_ndescriptors(int ndescriptors_in)
+{
+  ndescriptors = ndescriptors_in;
+}
+
 /* ---------------------------------------------------------------------- */
 
-void MLIAPModel::read_coeffs(char *coefffilename)
+
+MLIAPModelSimple::MLIAPModelSimple(LAMMPS *lmp, char *coefffilename) : MLIAPModel(lmp, coefffilename)
+{
+  coeffelem = nullptr;
+  if (coefffilename) read_coeffs(coefffilename);
+}
+
+/* ---------------------------------------------------------------------- */
+
+MLIAPModelSimple::~MLIAPModelSimple()
+{
+  memory->destroy(coeffelem);
+}
+
+/* ---------------------------------------------------------------------- */
+
+void MLIAPModelSimple::read_coeffs(char *coefffilename)
 {
 
   // open coefficient file on proc 0
 
   FILE *fpcoeff;
   if (comm->me == 0) {
-    fpcoeff = force->open_potential(coefffilename);
-    if (fpcoeff == NULL) {
-      char str[128];
-      snprintf(str,128,"Cannot open MLIAPModel coefficient file %s",coefffilename);
-      error->one(FLERR,str);
-    }
+    fpcoeff = utils::open_potential(coefffilename,lmp,nullptr);
+    if (fpcoeff == nullptr)
+      error->one(FLERR,fmt::format("Cannot open MLIAPModel coeff file {}: {}",
+                                   coefffilename,utils::getsyserror()));
   }
 
   char line[MAXLINE],*ptr;
@@ -78,7 +110,7 @@ void MLIAPModel::read_coeffs(char *coefffilename)
   while (nwords == 0) {
     if (comm->me == 0) {
       ptr = fgets(line,MAXLINE,fpcoeff);
-      if (ptr == NULL) {
+      if (ptr == nullptr) {
         eof = 1;
         fclose(fpcoeff);
       } else n = strlen(line) + 1;
@@ -99,14 +131,14 @@ void MLIAPModel::read_coeffs(char *coefffilename)
   // words = ptrs to all words in line
   // strip single and double quotes from words
 
-  char* words[MAXWORD];
-  int iword = 0;
-  words[iword] = strtok(line,"' \t\n\r\f");
-  iword = 1;
-  words[iword] = strtok(NULL,"' \t\n\r\f");
-
-  nelements = atoi(words[0]);
-  nparams = atoi(words[1]);
+  try {
+    ValueTokenizer coeffs(line);
+    nelements = coeffs.next_int();
+    nparams = coeffs.next_int();
+  } catch (TokenizerException &e) {
+    error->all(FLERR,fmt::format("Incorrect format in MLIAPModel coefficient "
+                                 "file: {}",e.what()));
+  }
 
   // set up coeff lists
 
@@ -118,7 +150,7 @@ void MLIAPModel::read_coeffs(char *coefffilename)
     for (int icoeff = 0; icoeff < nparams; icoeff++) {
       if (comm->me == 0) {
         ptr = fgets(line,MAXLINE,fpcoeff);
-        if (ptr == NULL) {
+        if (ptr == nullptr) {
           eof = 1;
           fclose(fpcoeff);
         } else n = strlen(line) + 1;
@@ -126,37 +158,34 @@ void MLIAPModel::read_coeffs(char *coefffilename)
 
       MPI_Bcast(&eof,1,MPI_INT,0,world);
       if (eof)
-        error->all(FLERR,"Incorrect format in  coefficient file");
+        error->all(FLERR,"Incorrect format in MLIAPModel coefficient file");
       MPI_Bcast(&n,1,MPI_INT,0,world);
       MPI_Bcast(line,n,MPI_CHAR,0,world);
 
-      nwords = utils::trim_and_count_words(line);
-      if (nwords != 1)
-        error->all(FLERR,"Incorrect format in  coefficient file");
-
-      iword = 0;
-      words[iword] = strtok(line,"' \t\n\r\f");
-
-      coeffelem[ielem][icoeff] = atof(words[0]);
-
+      try {
+        ValueTokenizer coeffs(utils::trim_comment(line));
+        if (coeffs.count() != 1)
+          throw TokenizerException("Wrong number of items","");
+        coeffelem[ielem][icoeff] = coeffs.next_double();
+      } catch (TokenizerException &e) {
+        error->all(FLERR,fmt::format("Incorrect format in MLIAPModel "
+                                     "coefficient file: {}",e.what()));
+      }
     }
   }
 
   if (comm->me == 0) fclose(fpcoeff);
-
 }
 
 /* ----------------------------------------------------------------------
    memory usage
 ------------------------------------------------------------------------- */
 
-double MLIAPModel::memory_usage()
+double MLIAPModelSimple::memory_usage()
 {
   double bytes = 0;
 
-  int n = atom->ntypes+1;
-  bytes += nelements*nparams*sizeof(double);  // coeffelem
-
+  bytes += (double)nelements*nparams*sizeof(double);  // coeffelem
   return bytes;
 }
 

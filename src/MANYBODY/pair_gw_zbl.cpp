@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -17,21 +17,18 @@
 ------------------------------------------------------------------------- */
 
 #include "pair_gw_zbl.h"
-#include <mpi.h>
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include "atom.h"
-#include "update.h"
-#include "force.h"
-#include "comm.h"
-#include "memory.h"
-#include "error.h"
-#include "utils.h"
-#include "tokenizer.h"
-#include "potential_file_reader.h"
 
+#include "comm.h"
+#include "error.h"
 #include "math_const.h"
+#include "memory.h"
+#include "potential_file_reader.h"
+#include "tokenizer.h"
+#include "update.h"
+
+#include <cmath>
+#include <cstring>
+
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
@@ -64,16 +61,21 @@ PairGWZBL::PairGWZBL(LAMMPS *lmp) : PairGW(lmp)
 void PairGWZBL::read_file(char *file)
 {
   memory->sfree(params);
-  params = NULL;
+  params = nullptr;
   nparams = maxparam = 0;
 
   // open file on proc 0
 
   if (comm->me == 0) {
-    PotentialFileReader reader(lmp, file, "GW/ZBL");
+    PotentialFileReader reader(lmp, file, "gw/zbl", unit_convert_flag);
     char * line;
 
-    while((line = reader.next_line(NPARAMS_PER_LINE))) {
+    // transparently convert units for supported conversions
+
+    int unit_convert = reader.get_unit_convert();
+    double conversion_factor = utils::get_conversion_factor(utils::ENERGY,
+                                                            unit_convert);
+    while ((line = reader.next_line(NPARAMS_PER_LINE))) {
       try {
         ValueTokenizer values(line);
 
@@ -102,6 +104,11 @@ void PairGWZBL::read_file(char *file)
           maxparam += DELTA;
           params = (Param *) memory->srealloc(params,maxparam*sizeof(Param),
                                               "pair:params");
+
+          // make certain all addional allocated storage is initialized
+          // to avoid false positives when checking with valgrind
+
+          memset(params + nparams, 0, DELTA*sizeof(Param));
         }
 
         params[nparams].ielement = ielement;
@@ -126,7 +133,12 @@ void PairGWZBL::read_file(char *file)
         params[nparams].ZBLcut      = values.next_double();
         params[nparams].ZBLexpscale = values.next_double();
         params[nparams].powermint = int(params[nparams].powerm);
-      } catch (TokenizerException & e) {
+
+        if (unit_convert) {
+          params[nparams].biga *= conversion_factor;
+          params[nparams].bigb *= conversion_factor;
+        }
+      } catch (TokenizerException &e) {
         error->one(FLERR, e.what());
       }
 
@@ -153,7 +165,7 @@ void PairGWZBL::read_file(char *file)
   MPI_Bcast(&nparams, 1, MPI_INT, 0, world);
   MPI_Bcast(&maxparam, 1, MPI_INT, 0, world);
 
-  if(comm->me != 0) {
+  if (comm->me != 0) {
     params = (Param *) memory->srealloc(params,maxparam*sizeof(Param), "pair:params");
   }
 

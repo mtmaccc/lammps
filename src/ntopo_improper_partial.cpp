@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -12,7 +12,7 @@
 ------------------------------------------------------------------------- */
 
 #include "ntopo_improper_partial.h"
-#include <mpi.h>
+
 #include "atom.h"
 #include "force.h"
 #include "domain.h"
@@ -21,7 +21,7 @@
 #include "thermo.h"
 #include "memory.h"
 #include "error.h"
-#include "fmt/format.h"
+
 
 using namespace LAMMPS_NS;
 
@@ -97,10 +97,7 @@ void NTopoImproperPartial::build()
 
   int all;
   MPI_Allreduce(&nmissing,&all,1,MPI_INT,MPI_SUM,world);
-  if (all) {
-    char str[128];
-    sprintf(str,
-            "Improper atoms missing at step " BIGINT_FORMAT,update->ntimestep);
-    if (me == 0) error->warning(FLERR,str);
-  }
+  if (all && me == 0)
+    error->warning(FLERR,fmt::format("Improper atoms missing at step {}",
+                                     update->ntimestep));
 }

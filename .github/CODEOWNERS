@@ -114,11 +114,14 @@ src/info.*                @akohlmey @rbberger
 src/timer.*               @akohlmey
 src/min*                  @sjplimp @stanmoore1
 src/utils.*               @akohlmey @rbberger
+src/math_eigen_impl.h     @jewettaij
 
 # tools
 tools/msi2lmp/*       @akohlmey
 tools/emacs/*         @HaoZeke
 tools/singularity/*   @akohlmey @rbberger
+tools/code_standard/* @rbberger
+tools/valgrind/*      @akohlmey
 
 # tests
 unittest/*            @akohlmey @rbberger
@@ -131,6 +134,9 @@ cmake/presets/*.cmake @junghans @rbberger @akohlmey
 
 # python
 python/*              @rbberger
+
+# fortran
+fortran/*             @akohlmey
 
 # docs
 doc/utils/*/*         @rbberger

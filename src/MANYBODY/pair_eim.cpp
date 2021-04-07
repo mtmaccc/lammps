@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -16,20 +16,18 @@
 ------------------------------------------------------------------------- */
 
 #include "pair_eim.h"
-#include <mpi.h>
+
+#include "atom.h"
+#include "comm.h"
+#include "error.h"
+#include "force.h"
+#include "memory.h"
+#include "neigh_list.h"
+#include "neighbor.h"
+#include "tokenizer.h"
+
 #include <cmath>
 #include <cstring>
-#include "atom.h"
-#include "force.h"
-#include "comm.h"
-#include "neighbor.h"
-#include "neigh_list.h"
-#include "memory.h"
-#include "error.h"
-#include "utils.h"
-#include "tokenizer.h"
-#include "potential_file_reader.h"
-#include "fmt/format.h"
 
 using namespace LAMMPS_NS;
 
@@ -41,26 +39,24 @@ PairEIM::PairEIM(LAMMPS *lmp) : Pair(lmp)
   restartinfo = 0;
   one_coeff = 1;
   manybody_flag = 1;
+  centroidstressflag = CENTROID_NOTAVAIL;
+  unit_convert_flag = utils::get_supported_conversions(utils::ENERGY);
 
-  setfl = NULL;
+  setfl = nullptr;
   nmax = 0;
-  rho = NULL;
-  fp = NULL;
-  map = NULL;
+  rho = nullptr;
+  fp = nullptr;
 
-  nelements = 0;
-  elements = NULL;
+  negativity = nullptr;
+  q0 = nullptr;
+  cutforcesq = nullptr;
+  Fij = nullptr;
+  Gij = nullptr;
+  phiij = nullptr;
 
-  negativity = NULL;
-  q0 = NULL;
-  cutforcesq = NULL;
-  Fij = NULL;
-  Gij = NULL;
-  phiij = NULL;
-
-  Fij_spline = NULL;
-  Gij_spline = NULL;
-  phiij_spline = NULL;
+  Fij_spline = nullptr;
+  Gij_spline = nullptr;
+  phiij_spline = nullptr;
 
   // set comm size needed by this Pair
 
@@ -80,14 +76,10 @@ PairEIM::~PairEIM()
   if (allocated) {
     memory->destroy(setflag);
     memory->destroy(cutsq);
-    delete [] map;
     memory->destroy(type2Fij);
     memory->destroy(type2Gij);
     memory->destroy(type2phiij);
   }
-
-  for (int i = 0; i < nelements; i++) delete [] elements[i];
-  delete [] elements;
 
   deallocate_setfl();
 
@@ -353,8 +345,6 @@ void PairEIM::settings(int narg, char **/*arg*/)
 
 void PairEIM::coeff(int narg, char **arg)
 {
-  int i,j,m,n;
-
   if (!allocated) allocate();
 
   if (narg < 5) error->all(FLERR,"Incorrect args for pair coefficients");
@@ -364,23 +354,8 @@ void PairEIM::coeff(int narg, char **arg)
   if (strcmp(arg[0],"*") != 0 || strcmp(arg[1],"*") != 0)
     error->all(FLERR,"Incorrect args for pair coefficients");
 
-  // read EIM element names before filename
-  // nelements = # of EIM elements to read from file
-  // elements = list of unique element names
-
-  if (nelements) {
-    for (i = 0; i < nelements; i++) delete [] elements[i];
-    delete [] elements;
-  }
-  nelements = narg - 3 - atom->ntypes;
-  if (nelements < 1) error->all(FLERR,"Incorrect args for pair coefficients");
-  elements = new char*[nelements];
-
-  for (i = 0; i < nelements; i++) {
-    n = strlen(arg[i+2]) + 1;
-    elements[i] = new char[n];
-    strcpy(elements[i],arg[i+2]);
-  }
+  const int ntypes = atom->ntypes;
+  map_element2type(ntypes,arg+(narg-ntypes));
 
   // read EIM file
 
@@ -388,38 +363,12 @@ void PairEIM::coeff(int narg, char **arg)
   setfl = new Setfl();
   read_file(arg[2+nelements]);
 
-  // read args that map atom types to elements in potential file
-  // map[i] = which element the Ith atom type is, -1 if NULL
+  // set per-type atomic masses
 
-  for (i = 3 + nelements; i < narg; i++) {
-    m = i - (3+nelements) + 1;
-    for (j = 0; j < nelements; j++)
-      if (strcmp(arg[i],elements[j]) == 0) break;
-    if (j < nelements) map[m] = j;
-    else if (strcmp(arg[i],"NULL") == 0) map[m] = -1;
-    else error->all(FLERR,"Incorrect args for pair coefficients");
-  }
-
-  // clear setflag since coeff() called once with I,J = * *
-
-  n = atom->ntypes;
-  for (i = 1; i <= n; i++)
-    for (j = i; j <= n; j++)
-      setflag[i][j] = 0;
-
-  // set setflag i,j for type pairs where both are mapped to elements
-  // set mass of atom type if i = j
-
-  int count = 0;
-  for (i = 1; i <= n; i++)
-    for (j = i; j <= n; j++)
-      if (map[i] >= 0 && map[j] >= 0) {
-        setflag[i][j] = 1;
+  for (int i = 1; i <= ntypes; i++)
+    for (int j = i; j <= ntypes; j++)
+      if ((map[i] >= 0) && (map[j] >= 0))
         if (i == j) atom->set_mass(FLERR,i,setfl->mass[map[i]]);
-        count++;
-      }
-
-  if (count == 0) error->all(FLERR,"Incorrect args for pair coefficients");
 }
 
 /* ----------------------------------------------------------------------
@@ -476,8 +425,8 @@ void PairEIM::read_file(char *filename)
   setfl->tp = new int[npair];
 
   // read potential file
-  if( comm->me == 0) {
-    EIMPotentialFileReader reader(lmp, filename);
+  if ( comm->me == 0) {
+    EIMPotentialFileReader reader(lmp, filename, unit_convert_flag);
 
     reader.get_global(setfl);
 
@@ -1044,23 +993,27 @@ void PairEIM::unpack_reverse_comm(int n, int *list, double *buf)
 
 double PairEIM::memory_usage()
 {
-  double bytes = maxeatom * sizeof(double);
-  bytes += maxvatom*6 * sizeof(double);
-  bytes += 2 * nmax * sizeof(double);
+  double bytes = (double)maxeatom * sizeof(double);
+  bytes += (double)maxvatom*6 * sizeof(double);
+  bytes += (double)2 * nmax * sizeof(double);
   return bytes;
 }
 
-EIMPotentialFileReader::EIMPotentialFileReader(LAMMPS * lmp, const std::string & filename) :
+EIMPotentialFileReader::EIMPotentialFileReader(LAMMPS *lmp,
+                                               const std::string &filename,
+                                               const int auto_convert) :
   Pointers(lmp), filename(filename)
 {
   if (comm->me != 0) {
     error->one(FLERR, "EIMPotentialFileReader should only be called by proc 0!");
   }
 
-  FILE * fp = force->open_potential(filename.c_str());
+  int unit_convert = auto_convert;
+  FILE *fp = utils::open_potential(filename, lmp, &unit_convert);
+  conversion_factor = utils::get_conversion_factor(utils::ENERGY,unit_convert);
 
-  if (fp == NULL) {
-    error->one(FLERR, fmt::format("cannot open EIM potential file {}", filename));
+  if (fp == nullptr) {
+    error->one(FLERR, fmt::format("cannot open eim potential file {}", filename));
   }
 
   parse(fp);
@@ -1068,7 +1021,7 @@ EIMPotentialFileReader::EIMPotentialFileReader(LAMMPS * lmp, const std::string &
   fclose(fp);
 }
 
-std::pair<std::string, std::string> EIMPotentialFileReader::get_pair(const std::string & a, const std::string & b) {
+std::pair<std::string, std::string> EIMPotentialFileReader::get_pair(const std::string &a, const std::string &b) {
   if (a < b) {
     return std::make_pair(a, b);
   }
@@ -1104,7 +1057,7 @@ char * EIMPotentialFileReader::next_line(FILE * fp) {
     n = strlen(line);
   }
 
-  while(n == 0 || concat) {
+  while (n == 0 || concat) {
     char *ptr = fgets(&line[n], MAXLINE - n, fp);
 
     if (ptr == nullptr) {
@@ -1139,7 +1092,7 @@ void EIMPotentialFileReader::parse(FILE * fp)
   char * line = nullptr;
   bool found_global = false;
 
-  while((line = next_line(fp))) {
+  while ((line = next_line(fp))) {
     ValueTokenizer values(line);
     std::string type = values.next_string();
 
@@ -1186,7 +1139,7 @@ void EIMPotentialFileReader::parse(FILE * fp)
       PairData data;
       data.rcutphiA  = values.next_double();
       data.rcutphiR  = values.next_double();
-      data.Eb        = values.next_double();
+      data.Eb        = values.next_double() * conversion_factor;
       data.r0        = values.next_double();
       data.alpha     = values.next_double();
       data.beta      = values.next_double();
@@ -1194,7 +1147,7 @@ void EIMPotentialFileReader::parse(FILE * fp)
       data.Asigma    = values.next_double();
       data.rq        = values.next_double();
       data.rcutsigma = values.next_double();
-      data.Ac        = values.next_double();
+      data.Ac        = values.next_double() * conversion_factor;
       data.zeta      = values.next_double();
       data.rs        = values.next_double();
 
@@ -1217,20 +1170,18 @@ void EIMPotentialFileReader::parse(FILE * fp)
   }
 }
 
-void EIMPotentialFileReader::get_global(PairEIM::Setfl * setfl) {
+void EIMPotentialFileReader::get_global(PairEIM::Setfl *setfl) {
   setfl->division  = division;
   setfl->rbig      = rbig;
   setfl->rsmall    = rsmall;
 }
 
-void EIMPotentialFileReader::get_element(PairEIM::Setfl * setfl, int i, const std::string & name) {
-  if (elements.find(name) == elements.end()) {
-    char str[128];
-    snprintf(str, 128, "Element %s not defined in EIM potential file", name.c_str());
-    error->one(FLERR, str);
-  }
+void EIMPotentialFileReader::get_element(PairEIM::Setfl *setfl, int i,
+                                         const std::string &name) {
+  if (elements.find(name) == elements.end())
+    error->one(FLERR,"Element " + name + " not defined in EIM potential file");
 
-  ElementData & data = elements[name];
+  ElementData &data = elements[name];
   setfl->ielement[i] = data.ielement;
   setfl->mass[i] = data.mass;
   setfl->negativity[i] = data.negativity;
@@ -1240,16 +1191,16 @@ void EIMPotentialFileReader::get_element(PairEIM::Setfl * setfl, int i, const st
   setfl->q0[i] = data.q0;
 }
 
-void EIMPotentialFileReader::get_pair(PairEIM::Setfl * setfl, int ij, const std::string & elemA, const std::string & elemB) {
+void EIMPotentialFileReader::get_pair(PairEIM::Setfl *setfl, int ij,
+                                      const std::string &elemA,
+                                      const std::string &elemB) {
   auto p = get_pair(elemA, elemB);
 
-  if (pairs.find(p) == pairs.end()) {
-    char str[128];
-    snprintf(str, 128, "Pair (%s, %s) not defined in EIM potential file", elemA.c_str(), elemB.c_str());
-    error->one(FLERR, str);
-  }
+  if (pairs.find(p) == pairs.end())
+    error->one(FLERR,"Element pair (" + elemA + ", " + elemB
+               + ") is not defined in EIM potential file");
 
-  PairData & data = pairs[p];
+  PairData &data = pairs[p];
   setfl->rcutphiA[ij] = data.rcutphiA;
   setfl->rcutphiR[ij] = data.rcutphiR;
   setfl->Eb[ij] = data.Eb;

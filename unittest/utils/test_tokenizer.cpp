@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -11,6 +11,7 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
+#include "lmptype.h"
 #include "tokenizer.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -42,6 +43,18 @@ TEST(Tokenizer, two_words)
     ASSERT_EQ(t.count(), 2);
 }
 
+TEST(Tokenizer, skip)
+{
+    Tokenizer t("test word", " ");
+    ASSERT_TRUE(t.has_next());
+    t.skip();
+    ASSERT_TRUE(t.has_next());
+    t.skip(1);
+    ASSERT_FALSE(t.has_next());
+    ASSERT_EQ(t.count(), 2);
+    ASSERT_THROW(t.skip(), TokenizerException);
+}
+
 TEST(Tokenizer, prefix_separators)
 {
     Tokenizer t("  test word", " ");
@@ -62,6 +75,49 @@ TEST(Tokenizer, iterate_words)
     ASSERT_EQ(t.count(), 2);
 }
 
+TEST(Tokenizer, copy_constructor)
+{
+    Tokenizer t("  test word   ", " ");
+    ASSERT_THAT(t.next(), Eq("test"));
+    ASSERT_THAT(t.next(), Eq("word"));
+    ASSERT_EQ(t.count(), 2);
+    Tokenizer u(t);
+    ASSERT_THAT(u.next(), Eq("test"));
+    ASSERT_THAT(u.next(), Eq("word"));
+    ASSERT_EQ(u.count(), 2);
+}
+
+TEST(Tokenizer, no_separator_path)
+{
+    Tokenizer t("one", ":");
+    ASSERT_EQ(t.has_next(), true);
+    ASSERT_EQ(t.count(), 1);
+    ASSERT_THAT(t.next(), Eq("one"));
+    ASSERT_EQ(t.has_next(), false);
+}
+
+TEST(Tokenizer, unix_paths)
+{
+    Tokenizer t(":one:two:three:", ":");
+    ASSERT_EQ(t.count(), 3);
+    ASSERT_THAT(t.next(), Eq("one"));
+    ASSERT_THAT(t.next(), Eq("two"));
+    ASSERT_EQ(t.has_next(), true);
+    ASSERT_THAT(t.next(), Eq("three"));
+    ASSERT_EQ(t.has_next(), false);
+}
+
+TEST(Tokenizer, windows_paths)
+{
+    Tokenizer t("c:\\one;\\two\\three;d:four;", ";");
+    ASSERT_EQ(t.count(), 3);
+    ASSERT_THAT(t.next(), Eq("c:\\one"));
+    ASSERT_EQ(t.has_next(), true);
+    ASSERT_THAT(t.next(), Eq("\\two\\three"));
+    ASSERT_THAT(t.next(), Eq("d:four"));
+    ASSERT_EQ(t.has_next(), false);
+}
+
 TEST(Tokenizer, default_separators)
 {
     Tokenizer t(" \r\n test \t word \f");
@@ -70,7 +126,7 @@ TEST(Tokenizer, default_separators)
     ASSERT_EQ(t.count(), 2);
 }
 
-TEST(Tokenizer, as_vector)
+TEST(Tokenizer, as_vector1)
 {
     Tokenizer t(" \r\n test \t word \f");
     std::vector<std::string> list = t.as_vector();
@@ -78,10 +134,53 @@ TEST(Tokenizer, as_vector)
     ASSERT_THAT(list[1], Eq("word"));
 }
 
+TEST(Tokenizer, as_vector2)
+{
+    auto list = Tokenizer("a\\b\\c", "\\").as_vector();
+    ASSERT_THAT(list[0], Eq("a"));
+    ASSERT_THAT(list[1], Eq("b"));
+    ASSERT_THAT(list[2], Eq("c"));
+    ASSERT_EQ(list.size(), 3);
+}
+
+TEST(Tokenizer, as_vector3)
+{
+    auto list = Tokenizer("a\\", "\\").as_vector();
+    ASSERT_THAT(list[0], Eq("a"));
+    ASSERT_EQ(list.size(), 1);
+}
+
+TEST(Tokenizer, as_vector4)
+{
+    auto list = Tokenizer("\\a", "\\").as_vector();
+    ASSERT_THAT(list[0], Eq("a"));
+    ASSERT_EQ(list.size(), 1);
+}
+
 TEST(ValueTokenizer, empty_string)
 {
     ValueTokenizer values("");
     ASSERT_FALSE(values.has_next());
+}
+
+TEST(ValueTokenizer, two_words)
+{
+    ValueTokenizer t("test word", " ");
+    ASSERT_THAT(t.next_string(), Eq("test"));
+    ASSERT_THAT(t.next_string(), Eq("word"));
+    ASSERT_THROW(t.next_string(), TokenizerException);
+}
+
+TEST(ValueTokenizer, skip)
+{
+    ValueTokenizer t("test word", " ");
+    ASSERT_TRUE(t.has_next());
+    t.skip();
+    ASSERT_TRUE(t.has_next());
+    t.skip(1);
+    ASSERT_FALSE(t.has_next());
+    ASSERT_EQ(t.count(), 2);
+    ASSERT_THROW(t.skip(), TokenizerException);
 }
 
 TEST(ValueTokenizer, bad_integer)
@@ -124,4 +223,45 @@ TEST(ValueTokenizer, valid_double_with_exponential)
 {
     ValueTokenizer values("3.14e22");
     ASSERT_DOUBLE_EQ(values.next_double(), 3.14e22);
+}
+
+TEST(ValueTokenizer, contains)
+{
+    ValueTokenizer values("test word");
+    ASSERT_TRUE(values.contains("test"));
+    ASSERT_TRUE(values.contains("word"));
+}
+
+TEST(ValueTokenizer, not_contains)
+{
+    ValueTokenizer values("test word");
+    ASSERT_FALSE(values.contains("test2"));
+}
+
+TEST(ValueTokenizer, missing_int)
+{
+    ValueTokenizer values("10");
+    ASSERT_EQ(values.next_int(), 10);
+    ASSERT_THROW(values.next_int(), TokenizerException);
+}
+
+TEST(ValueTokenizer, missing_tagint)
+{
+    ValueTokenizer values("42");
+    ASSERT_EQ(values.next_tagint(), 42);
+    ASSERT_THROW(values.next_tagint(), TokenizerException);
+}
+
+TEST(ValueTokenizer, missing_bigint)
+{
+    ValueTokenizer values("42");
+    ASSERT_EQ(values.next_bigint(), 42);
+    ASSERT_THROW(values.next_bigint(), TokenizerException);
+}
+
+TEST(ValueTokenizer, missing_double)
+{
+    ValueTokenizer values("3.14");
+    ASSERT_DOUBLE_EQ(values.next_double(), 3.14);
+    ASSERT_THROW(values.next_double(), TokenizerException);
 }
