@@ -17,25 +17,24 @@
 
 #include "pair_lj_cubic_gpu.h"
 
-#include <cmath>
-#include <cstdio>
-#include <cstring>
-
 #include "atom.h"
 #include "atom_vec.h"
 #include "comm.h"
+#include "domain.h"
+#include "error.h"
 #include "force.h"
-#include "neighbor.h"
-#include "neigh_list.h"
+#include "gpu_extra.h"
 #include "integrate.h"
 #include "memory.h"
-#include "error.h"
+#include "neigh_list.h"
 #include "neigh_request.h"
+#include "neighbor.h"
+#include "suffix.h"
 #include "universe.h"
 #include "update.h"
-#include "domain.h"
-#include "gpu_extra.h"
-#include "suffix.h"
+
+#include <cmath>
+#include <cstring>
 
 #include "pair_lj_cubic_const.h"
 
@@ -163,7 +162,7 @@ void PairLJCubicGPU::init_style()
   double cell_size = sqrt(maxcut) + neighbor->skin;
 
   int maxspecial=0;
-  if (atom->molecular)
+  if (atom->molecular != Atom::ATOMIC)
     maxspecial=atom->maxspecial;
   int mnf = 5e-2 * neighbor->oneatom;
   int success = ljcb_gpu_init(atom->ntypes+1, cutsq, cut_inner_sq,

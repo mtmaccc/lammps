@@ -160,6 +160,7 @@ atwt
 augt
 AuO
 automagically
+Auvergne
 Avalos
 avalue
 aveforce
@@ -1587,6 +1588,7 @@ lammps
 Lammps
 LAMMPS
 lammpsplot
+lammpsplugin
 Lampis
 Lamoureux
 Lanczos
@@ -1740,6 +1742,7 @@ lwsock
 lx
 ly
 Lybrand
+lyon
 Lyulin
 lz
 Maaravi
@@ -2678,6 +2681,7 @@ representable
 Reproducibility
 reproducibility
 repuls
+reqid
 rescale
 rescaled
 rescales
@@ -3256,6 +3260,7 @@ Tz
 Tzou
 ub
 Uberuaga
+uca
 uChem
 uCond
 uef

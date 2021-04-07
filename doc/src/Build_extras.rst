@@ -125,12 +125,12 @@ CMake build
                                 # default is sm_50
    -D HIP_ARCH=value            # primary GPU hardware choice for GPU_API=hip
                                 # value depends on selected HIP_PLATFORM
-                                # default is 'gfx906' for HIP_PLATFORM=hcc and 'sm_50' for HIP_PLATFORM=nvcc
+                                # default is 'gfx906' for HIP_PLATFORM=amd and 'sm_50' for HIP_PLATFORM=nvcc
    -D HIP_USE_DEVICE_SORT=value # enables GPU sorting
                                 # value = yes (default) or no
-   -D CUDPP_OPT=value           # optimization setting for GPU_API=cuda
-                                # enables CUDA Performance Primitives Optimizations, must be "no" for CUDA_MPS_SUPPORT=yes
-                                # value = yes (default) or no
+   -D CUDPP_OPT=value           # use GPU binning on with CUDA (should be off for modern GPUs)
+                                # enables CUDA Performance Primitives, must be "no" for CUDA_MPS_SUPPORT=yes
+                                # value = yes or no (default)
    -D CUDA_MPS_SUPPORT=value    # enables some tweaks required to run with active nvidia-cuda-mps daemon
                                 # value = yes or no (default)
    -D USE_STATIC_OPENCL_LOADER=value  # downloads/includes OpenCL ICD loader library, no local OpenCL headers/libs needed
@@ -169,14 +169,21 @@ desired, you can set :code:`USE_STATIC_OPENCL_LOADER` to :code:`no`.
 
 If you are compiling with HIP, note that before running CMake you will have to
 set appropriate environment variables. Some variables such as
-:code:`HCC_AMDGPU_TARGET` or :code:`CUDA_PATH` are necessary for :code:`hipcc`
+:code:`HCC_AMDGPU_TARGET` (for ROCm <= 4.0) or :code:`CUDA_PATH` are necessary for :code:`hipcc`
 and the linker to work correctly.
 
 .. code:: bash
 
-   # AMDGPU target
+   # AMDGPU target (ROCm <= 4.0)
    export HIP_PLATFORM=hcc
    export HCC_AMDGPU_TARGET=gfx906
+   cmake -D PKG_GPU=on -D GPU_API=HIP -D HIP_ARCH=gfx906 -D CMAKE_CXX_COMPILER=hipcc ..
+   make -j 4
+
+.. code:: bash
+
+   # AMDGPU target (ROCm >= 4.1)
+   export HIP_PLATFORM=amd
    cmake -D PKG_GPU=on -D GPU_API=HIP -D HIP_ARCH=gfx906 -D CMAKE_CXX_COMPILER=hipcc ..
    make -j 4
 
@@ -230,11 +237,12 @@ GPU architectures as supported by the CUDA toolkit in use. This is done
 through using the "--gencode " flag, which can be used multiple times and
 thus support all GPU architectures supported by your CUDA compiler.
 
-To include CUDA performance primitives set the Makefile variable
-``CUDPP_OPT = -DUSE_CUDPP -Icudpp_mini``.
+To enable GPU binning via CUDA performance primitives set the Makefile variable
+``CUDPP_OPT = -DUSE_CUDPP -Icudpp_mini``.  This should **not** be used with
+most modern GPUs.
 
 To support the CUDA multiprocessor server you can set the define
-``-DCUDA_PROXY``.  Please note that in this case you should **not** use
+``-DCUDA_PROXY``.  Please note that in this case you must **not** use
 the CUDA performance primitives and thus set the variable ``CUDPP_OPT``
 to empty.
 
