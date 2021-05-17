@@ -6,13 +6,8 @@ SHELL = /bin/sh
 # compiler/linker settings
 # specify flags and libraries needed for your compiler
 
-<<<<<<< HEAD
-CC =		mpiicpc 
-OPTFLAGS =      -xHost -O2 -fp-model fast=2 -no-prec-div -qoverride-limits \
-=======
 CC =		mpiicpc -std=c++11
-OPTFLAGS =      -xHost -O2 -fp-model fast=2 -no-prec-div -qoverride-limits \
->>>>>>> 7b8498fab62da82daab46f5bf18a94ffae5d661c
+OPTFLAGS =      -O2 -fp-model fast=2 -no-prec-div -qoverride-limits \
                 -qopt-zmm-usage=high
 CCFLAGS =	-qopenmp -qno-offload -ansi-alias -restrict \
                 -DLMP_INTEL_USELRT -DLMP_USE_MKL_RNG $(OPTFLAGS) \

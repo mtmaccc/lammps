@@ -46,3 +46,7 @@ Thumbs.db
 /Makefile
 /cmake_install.cmake
 /lmp
+
+#Magnetostriction & hoffman
+src/MAKE/OPTIONS/Makefile.intel_cpu_intelmpi
+

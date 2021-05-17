@@ -7,7 +7,6 @@
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
    certain rights in this software.  This software is distributed under
    the GNU General Public License.
-
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
@@ -30,31 +29,45 @@ class PairSpinElastic : public PairSpin {
   virtual ~PairSpinElastic();
   void settings(int, char **);
   void coeff(int, char **);
+  void init_style();
   double init_one(int, int);
   void *extract(const char *, int &);
 
   void compute(int, int);
   void compute_single_pair(int, double *);
+  
+//  void compute_strain( FIX THIS EVENTUALLy)
+  void compute_elastic(int, double[][3] , double *, double *);
+//  void compute_elastic_mech(int, int, double, double *, double *, double *);
+  void compute_elastic_mech(int, int, double, double *, double *, double *);
+  double compute_elastic_energy(int, double[][3], double *); 
 
-  void compute_neel(int, int, double, double *, double *, double *, double *);
-  void compute_neel_mech(int, int, double, double *, double *, double *, double *);
+  // Function to invert 3x3 matricies
+  
+  void solve3x3exactly(double a[][3], double c[][3], double l[][3]);
 
   void write_restart(FILE *);
   void read_restart(FILE *);
   void write_restart_settings(FILE *);
   void read_restart_settings(FILE *);
 
-  double cut_spin_neel_global;          // global neel cutoff distance
+  double cut_spin_elastic_global;          // global neel cutoff distance
 
  protected:
+  
+   // store r0 starting atom positions used in strain (Must be in Ground State)
 
-  // pseudo-dipolar and pseudo-quadrupolar coeff.
+  double **r0;
 
-  double **g1, **g1_mech;               // neel coeffs gij
-  double **g2, **g3;                    // g1 in eV, g2 adim, g3 in Ang
-  double **q1, **q1_mech;               // neel coeffs qij
-  double **q2, **q3;                    // q1 in eV, q2 adim, q3 in Ang
-  double **cut_spin_neel;               // cutoff distance exchange
+  // Elastic Equation Variables
+
+  double **b1_mag, **b1_mech;               // elastic Coeffs B1 _mag in eV _mech in rad.THz
+  double **b2_mag, **b2_mech;               // elastic Coeffs B2 _mag in eV _mech in rad.THz
+  double **cut_spin_elastic;               // cutoff distance exchange
+
+  double n1x, n1y, n1z;             // x, y, z, unit vector to define "1" direction (x)
+  double n2x, n2y, n2z;             // x, y, z, unit vector to define "2" direction (y)
+  double n3x, n3y, n3z;             // x, y, z, unit vector to define "3" direction (z)
 
   void allocate();
 };
@@ -65,21 +78,20 @@ class PairSpinElastic : public PairSpin {
 #endif
 
 /* ERROR/WARNING messages:
-
+ 
 E: Incorrect args in pair_spin command
-
+ 
 Self-explanatory.
-
+ 
 E: Spin simulations require metal unit style
-
+ 
 Self-explanatory.
 
-E: Incorrect args for pair coefficients
+E : Incorrect args for pair coefficients
 
 Self-explanatory.  Check the input script or data file.
 
 E: Pair spin requires atom attribute spin
 
 The atom style defined does not have these attributes.
-
 */

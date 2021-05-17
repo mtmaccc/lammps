@@ -1421,3 +1421,7 @@
 /pair_vashishta*.h
 /zstd_file_writer.cpp
 /zstd_file_writer.h
+
+
+src/MAKE/OPTIONS/Makefile.intel_cpu_intelmpi
+
