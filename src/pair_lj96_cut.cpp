@@ -1,3 +1,4 @@
+// clang-format off
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://lammps.sandia.gov/, Sandia National Laboratories
@@ -17,20 +18,19 @@
 
 #include "pair_lj96_cut.h"
 
-#include <cmath>
-#include <cstring>
 #include "atom.h"
 #include "comm.h"
+#include "error.h"
 #include "force.h"
-#include "neighbor.h"
-#include "neigh_list.h"
-#include "neigh_request.h"
-#include "update.h"
-#include "respa.h"
 #include "math_const.h"
 #include "memory.h"
-#include "error.h"
+#include "neigh_list.h"
+#include "neigh_request.h"
+#include "neighbor.h"
+#include "respa.h"
+#include "update.h"
 
+#include <cmath>
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
