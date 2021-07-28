@@ -13,20 +13,23 @@
    Contributing author: W. Michael Brown (Intel)
 ------------------------------------------------------------------------- */
 
-#include <cmath>
 #include "pair_lj_charmm_coul_long_intel.h"
+
 #include "atom.h"
 #include "comm.h"
 #include "force.h"
 #include "group.h"
 #include "kspace.h"
 #include "memory.h"
+#include "memory.h"
 #include "modify.h"
-#include "neighbor.h"
 #include "neigh_list.h"
 #include "neigh_request.h"
-#include "memory.h"
+#include "neighbor.h"
 #include "suffix.h"
+
+#include <cmath>
+
 using namespace LAMMPS_NS;
 
 #define LJ_T typename IntelBuffers<flt_t,flt_t>::vec2_t
@@ -74,6 +77,9 @@ void PairLJCharmmCoulLongIntel::compute(int eflag, int vflag,
   ev_init(eflag,vflag);
   if (vflag_atom)
     error->all(FLERR,"INTEL package does not support per-atom stress");
+  if (vflag && !vflag_fdotr && force->newton_pair)
+    error->all(FLERR,"INTEL package does not support pair_modify nofdotr "
+               "with newton on");
 
   const int inum = list->inum;
   const int nthreads = comm->nthreads;
@@ -309,9 +315,14 @@ void PairLJCharmmCoulLongIntel::eval(const int offload, const int vflag,
         }
 
         #if defined(LMP_SIMD_COMPILER)
+#if defined(USE_OMP_SIMD)
+        #pragma omp simd reduction(+:fxtmp, fytmp, fztmp, fwtmp, sevdwl, \
+                                   secoul, sv0, sv1, sv2, sv3, sv4, sv5)
+#else
+        #pragma simd reduction(+:fxtmp, fytmp, fztmp, fwtmp, sevdwl, \
+                               secoul, sv0, sv1, sv2, sv3, sv4, sv5)
+#endif
         #pragma vector aligned
-        #pragma simd reduction(+:fxtmp, fytmp, fztmp, fwtmp, sevdwl, secoul, \
-                               sv0, sv1, sv2, sv3, sv4, sv5)
         #endif
         for (int jj = 0; jj < ej; jj++) {
           flt_t forcecoul, forcelj, evdwl, ecoul;
@@ -510,11 +521,13 @@ void PairLJCharmmCoulLongIntel::eval(const int offload, const int vflag,
 void PairLJCharmmCoulLongIntel::init_style()
 {
   PairLJCharmmCoulLong::init_style();
+  auto request = neighbor->find_request(this);
+
   if (force->newton_pair == 0) {
-    neighbor->requests[neighbor->nrequest-1]->half = 0;
-    neighbor->requests[neighbor->nrequest-1]->full = 1;
+    request->half = 0;
+    request->full = 1;
   }
-  neighbor->requests[neighbor->nrequest-1]->intel = 1;
+  request->intel = 1;
 
   int ifix = modify->find_fix("package_intel");
   if (ifix < 0)
