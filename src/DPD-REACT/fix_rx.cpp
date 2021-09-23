@@ -18,6 +18,7 @@
 #include "comm.h"
 #include "domain.h"
 #include "error.h"
+#include "fix_property_atom.h"
 #include "force.h"
 #include "group.h"
 #include "math_special.h"
@@ -33,7 +34,6 @@
 #include <cfloat> // DBL_EPSILON
 #include <cmath>
 #include <cstring>
-#include <vector> // std::vector<>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
@@ -58,7 +58,7 @@ namespace /* anonymous */
 {
 
 typedef double TimerType;
-TimerType getTimeStamp(void) { return MPI_Wtime(); }
+TimerType getTimeStamp() { return MPI_Wtime(); }
 double getElapsedTime( const TimerType &t0, const TimerType &t1) { return t1-t0; }
 
 } // end namespace
@@ -344,12 +344,9 @@ void FixRX::post_constructor()
   newcmd1 += " ghost yes";
   newcmd2 += " ghost yes";
 
-  modify->add_fix(newcmd1);
-  fix_species = (FixPropertyAtom *) modify->fix[modify->nfix-1];
-  restartFlag = modify->fix[modify->nfix-1]->restart_reset;
-
-  modify->add_fix(newcmd2);
-  fix_species_old = (FixPropertyAtom *) modify->fix[modify->nfix-1];
+  fix_species = (FixPropertyAtom *) modify->add_fix(newcmd1);
+  restartFlag = fix_species->restart_reset;
+  fix_species_old = (FixPropertyAtom *) modify->add_fix(newcmd2);
 
   if (nspecies==0) error->all(FLERR,"There are no rx species specified.");
 
@@ -376,7 +373,7 @@ void FixRX::initSparse()
 
   if (comm->me == 0 and Verbosity > 1) {
     for (int k = 0; k < nspecies; ++k)
-      printf("atom->dname[%d]= %s\n", k, atom->dname[k]);
+      printf("atom->dvname[%d]= %s\n", k, atom->dvname[k]);
 
     printf("stoich[][]\n");
     for (int i = 0; i < nreactions; ++i) {
@@ -436,7 +433,7 @@ void FixRX::initSparse()
 
         char digit[6];
         sprintf(digit, "%4.1f ", stoichReactants[i][k]); rstr += digit;
-        rstr += atom->dname[k];
+        rstr += atom->dvname[k];
       }
       if (stoichProducts[i][k] > 0.0) {
         allAreIntegral &= (std::fmod( stoichProducts[i][k], 1.0 ) == 0.0);
@@ -448,7 +445,7 @@ void FixRX::initSparse()
         char digit[6];
         sprintf(digit, "%4.1f ", stoichProducts[i][k]); pstr += digit;
 
-        pstr += atom->dname[k];
+        pstr += atom->dvname[k];
       }
     }
     if (comm->me == 0 and Verbosity > 1)
@@ -562,7 +559,7 @@ void FixRX::initSparse()
           else
             sprintf(digit,"%4.1f ", sparseKinetics_nu[i][kk]);
           rstr += digit;
-          rstr += atom->dname[k];
+          rstr += atom->dvname[k];
         }
       }
 
@@ -578,7 +575,7 @@ void FixRX::initSparse()
           else
             sprintf(digit,"%4.1f ", sparseKinetics_nu[i][kk]);
           pstr += digit;
-          pstr += atom->dname[k];
+          pstr += atom->dvname[k];
         }
       }
       if (comm->me == 0 and Verbosity > 1)
@@ -916,7 +913,7 @@ void FixRX::read_file(char *file)
       tmpStoich = atof(word);
       word = strtok(nullptr, " \t\n\r\f");
       for (ispecies = 0; ispecies < nspecies; ispecies++) {
-        if (strcmp(word,&atom->dname[ispecies][0]) == 0) {
+        if (strcmp(word,&atom->dvname[ispecies][0]) == 0) {
           stoich[nreactions][ispecies] += sign*tmpStoich;
           if (sign<0.0)
             stoichReactants[nreactions][ispecies] += tmpStoich;
@@ -1248,7 +1245,7 @@ int FixRX::rkf45_h0 (const int neq, const double t, const double /*t_stop*/,
    return (iter + 1);
 }
 
-void FixRX::odeDiagnostics(void)
+void FixRX::odeDiagnostics()
 {
   TimerType timer_start = getTimeStamp();
 
@@ -1295,7 +1292,8 @@ void FixRX::odeDiagnostics(void)
 
      // Query the fix database and look for rx_weight for the balance fix.
      int type_flag = -1;
-     int rx_weight_index = atom->find_custom( "rx_weight", /*0:int, 1:float*/ type_flag );
+     int cols;
+     int rx_weight_index = atom->find_custom( "rx_weight", /*0:int, 1:float*/ type_flag, cols );
 
      // Compute the average # of neighbors.
      double averageNumNeighbors = 0;

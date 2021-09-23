@@ -72,7 +72,8 @@ Alexey
 ali
 aliceblue
 Allinger
-allocaters
+allocator
+allocators
 allosws
 AlO
 Alonso
@@ -531,6 +532,7 @@ covalently
 covariance
 cpp
 cpu
+cradius
 createatoms
 createAtoms
 CreateIDs
@@ -1007,6 +1009,7 @@ FFmpeg
 ffplay
 fft
 fftbench
+fftMPI
 fftw
 fgets
 fhg
@@ -1173,6 +1176,7 @@ googletest
 Gordan
 Goudeau
 GPa
+GPL
 gpu
 gpuID
 gpus
@@ -1382,6 +1386,7 @@ inhomogeneities
 inhomogeneous
 init
 initialdelay
+initialisms
 initializations
 InitiatorIDs
 initio
@@ -1598,6 +1603,7 @@ Kosovan
 Koster
 Kosztin
 Kp
+kradius
 Kraker
 Kraus
 Kremer
@@ -1687,6 +1693,8 @@ Lett
 Leuven
 Leven
 Lewy
+LF
+LGPL
 lgvdw
 Liang
 libatc
@@ -1887,7 +1895,6 @@ maxX
 Mayergoyz
 Mayoral
 mbt
-Mbytes
 MBytes
 mc
 McLachlan
@@ -1993,6 +2000,7 @@ Mj
 mK
 mkdir
 mkv
+mlength
 mliap
 mliappy
 mlparks
@@ -2049,6 +2057,7 @@ mpiio
 mpirun
 mplayer
 mps
+mradius
 Mrovec
 Mryglod
 mscg
@@ -2090,6 +2099,7 @@ Murdick
 Murtola
 Murty
 Muser
+mutexes
 Muto
 muVT
 mux
@@ -2107,6 +2117,7 @@ myIndex
 mylammps
 MyPool
 mysocket
+mySpin
 myTemp
 myVec
 na
@@ -2275,6 +2286,7 @@ normals
 Noskov
 noslip
 noticable
+Nout
 noutcol
 Noutput
 noutrow
@@ -2317,6 +2329,7 @@ nsub
 Nswap
 Nt
 Ntable
+nt
 ntheta
 nthreads
 ntimestep
@@ -2427,6 +2440,7 @@ packings
 padua
 Padua
 pafi
+PairIJ
 palegoldenrod
 palegreen
 paleturquoise

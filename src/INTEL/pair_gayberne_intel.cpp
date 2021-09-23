@@ -27,6 +27,7 @@
 #include "atom.h"
 #include "atom_vec_ellipsoid.h"
 #include "comm.h"
+#include "error.h"
 #include "force.h"
 #include "memory.h"
 #include "modify.h"
@@ -34,6 +35,8 @@
 #include "neigh_request.h"
 #include "neighbor.h"
 #include "suffix.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
 
@@ -990,6 +993,7 @@ void PairGayBerneIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
                                                       const int nthreads,
                                                       Memory *memory,
                                                       const int cop) {
+  if (memory != nullptr) _memory = memory;
   if (ntypes != _ntypes) {
     if (_ntypes > 0) {
       fc_packed3 *oic = ic;
@@ -1029,15 +1033,15 @@ void PairGayBerneIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
 
     if (ntypes > 0) {
       _cop = cop;
-      memory->create(ijc, ntypes, ntypes, "fc.ijc");
-      memory->create(lj34, ntypes, ntypes, "fc.lj34");
-      memory->create(ic, ntypes, "fc.ic");
-      memory->create(rsq_form, nthreads, one_length, "rsq_form");
-      memory->create(delx_form, nthreads, one_length, "delx_form");
-      memory->create(dely_form, nthreads, one_length, "dely_form");
-      memory->create(delz_form, nthreads, one_length, "delz_form");
-      memory->create(jtype_form, nthreads, one_length, "jtype_form");
-      memory->create(jlist_form, nthreads, one_length, "jlist_form");
+      _memory->create(ijc, ntypes, ntypes, "fc.ijc");
+      _memory->create(lj34, ntypes, ntypes, "fc.lj34");
+      _memory->create(ic, ntypes, "fc.ic");
+      _memory->create(rsq_form, nthreads, one_length, "rsq_form");
+      _memory->create(delx_form, nthreads, one_length, "delx_form");
+      _memory->create(dely_form, nthreads, one_length, "dely_form");
+      _memory->create(delz_form, nthreads, one_length, "delz_form");
+      _memory->create(jtype_form, nthreads, one_length, "jtype_form");
+      _memory->create(jlist_form, nthreads, one_length, "jlist_form");
 
       for (int zn = 0; zn < nthreads; zn++)
         for (int zo = 0; zo < one_length; zo++) {
@@ -1082,5 +1086,4 @@ void PairGayBerneIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
     }
   }
   _ntypes = ntypes;
-  _memory = memory;
 }
