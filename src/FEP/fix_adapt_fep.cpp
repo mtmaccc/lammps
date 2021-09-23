@@ -216,10 +216,8 @@ void FixAdaptFEP::post_constructor()
   id_fix_chg = nullptr;
 
   if (diamflag) {
-    auto cmd = fmt::format("{}_FIX_STORE_DIAM {} STORE peratom 1 1",
-                           group->names[igroup]);
-    modify->add_fix(cmd);
-    fix_diam = (FixStore *) modify->fix[modify->nfix-1];
+    auto cmd = fmt::format("{}_FIX_STORE_DIAM {} STORE peratom 1 1", group->names[igroup]);
+    fix_diam = (FixStore *) modify->add_fix(cmd);
 
     if (fix_diam->restart_reset) fix_diam->restart_reset = 0;
     else {
@@ -236,10 +234,8 @@ void FixAdaptFEP::post_constructor()
   }
 
   if (chgflag) {
-    auto cmd = fmt::format("{}_FIX_STORE_CHG {} STORE peratom 1 1",
-                           group->names[igroup]);
-    modify->add_fix(cmd);
-    fix_chg = (FixStore *) modify->fix[modify->nfix-1];
+    auto cmd = fmt::format("{}_FIX_STORE_CHG {} STORE peratom 1 1", group->names[igroup]);
+    fix_chg = (FixStore *) modify->add_fix(cmd);
 
     if (fix_chg->restart_reset) fix_chg->restart_reset = 0;
     else {
@@ -286,13 +282,9 @@ void FixAdaptFEP::init()
       anypair = 1;
       Pair *pair = nullptr;
 
-      if (lmp->suffix_enable) {
-        char psuffix[128];
-        strcpy(psuffix,ad->pstyle);
-        strcat(psuffix,"/");
-        strcat(psuffix,lmp->suffix);
-        pair = force->pair_match(psuffix,1);
-      }
+      if (lmp->suffix_enable)
+        pair = force->pair_match(std::string(ad->pstyle)+"/"+lmp->suffix,1);
+
       if (pair == nullptr) pair = force->pair_match(ad->pstyle,1);
       if (pair == nullptr)
         error->all(FLERR, "Fix adapt/fep pair style does not exist");

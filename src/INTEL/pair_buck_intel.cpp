@@ -21,6 +21,7 @@
 #include "atom.h"
 #include "comm.h"
 #include "error.h"
+#include "force.h"
 #include "math_const.h"
 #include "memory.h"
 #include "modify.h"
@@ -30,6 +31,7 @@
 #include "suffix.h"
 
 #include <cmath>
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
@@ -455,6 +457,7 @@ template <class flt_t>
 void PairBuckIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
                                                   Memory *memory,
                                                   const int cop) {
+  if (memory != nullptr) _memory = memory;
   if ((ntypes != _ntypes )) {
     if (_ntypes > 0) {
       #ifdef _LMP_INTEL_OFFLOAD
@@ -477,9 +480,8 @@ void PairBuckIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
     }
     if (ntypes > 0) {
       _cop = cop;
-      memory->create(c_force,ntypes,ntypes,"fc.c_force");
-      memory->create(c_energy,ntypes,ntypes,"fc.c_energy");
-
+      _memory->create(c_force,ntypes,ntypes,"fc.c_force");
+      _memory->create(c_energy,ntypes,ntypes,"fc.c_energy");
 
       #ifdef _LMP_INTEL_OFFLOAD
       flt_t * ospecial_lj = special_lj;
@@ -499,7 +501,6 @@ void PairBuckIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
     }
   }
   _ntypes=ntypes;
-  _memory=memory;
 }
 
 

@@ -476,7 +476,7 @@ void PairHybrid::coeff(int narg, char **arg)
   // 4th arg = pair sub-style index if name used multiple times
   // allow for "none" as valid sub-style name
 
-  int multflag;
+  int multflag = 0;
   int m;
 
   for (m = 0; m < nstyles; m++) {
@@ -569,7 +569,7 @@ void PairHybrid::init_style()
   // same style must not be used multiple times
 
   for (istyle = 0; istyle < nstyles; istyle++) {
-    bool is_gpu = (((PairHybrid *)styles[istyle])->suffix_flag & Suffix::GPU);
+    bool is_gpu = styles[istyle]->suffix_flag & Suffix::GPU;
     if (multiple[istyle] && is_gpu)
       error->all(FLERR,"GPU package styles must not be used multiple times");
   }
@@ -581,18 +581,17 @@ void PairHybrid::init_style()
       for (i = 1; i < 4; ++i) {
         if (((force->special_lj[i] == 0.0) || (force->special_lj[i] == 1.0))
             && (force->special_lj[i] != special_lj[istyle][i]))
-          error->all(FLERR,"Pair_modify special setting for pair hybrid "
-                     "incompatible with global special_bonds setting");
+          error->all(FLERR,"Pair_modify special lj 1-{} setting for pair hybrid substyle {} "
+                     "incompatible with global special_bonds setting", i+1, keywords[istyle]);
       }
     }
 
     if (special_coul[istyle]) {
       for (i = 1; i < 4; ++i) {
-        if (((force->special_coul[i] == 0.0)
-             || (force->special_coul[i] == 1.0))
+        if (((force->special_coul[i] == 0.0) || (force->special_coul[i] == 1.0))
             && (force->special_coul[i] != special_coul[istyle][i]))
-          error->all(FLERR,"Pair_modify special setting for pair hybrid "
-                     "incompatible with global special_bonds setting");
+          error->all(FLERR,"Pair_modify special coul 1-{} setting for pair hybrid substyle {} "
+                     "incompatible with global special_bonds setting", i+1, keywords[istyle]);
       }
     }
   }

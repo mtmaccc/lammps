@@ -18,6 +18,7 @@
 
 #include "atom.h"
 #include "comm.h"
+#include "error.h"
 #include "force.h"
 #include "memory.h"
 #include "modify.h"
@@ -28,6 +29,9 @@
 
 #include <cmath>
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 using namespace LAMMPS_NS;
 
 #define LMP_MKL_RNG VSL_BRNG_MT19937
@@ -558,6 +562,7 @@ void PairDPDIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
                                                  const int max_nbors,
                                                  Memory *memory,
                                                  const int cop) {
+  if (memory != nullptr) _memory = memory;
   if (ntypes != _ntypes) {
     if (_ntypes > 0) {
       _memory->destroy(param);
@@ -566,15 +571,14 @@ void PairDPDIntel::ForceConst<flt_t>::set_ntypes(const int ntypes,
     }
     if (ntypes > 0) {
       _cop = cop;
-      memory->create(param,ntypes,ntypes,"fc.param");
-      memory->create(rand_buffer_thread, nthreads, max_nbors,
+      _memory->create(param,ntypes,ntypes,"fc.param");
+      _memory->create(rand_buffer_thread, nthreads, max_nbors,
                      "fc.rand_buffer_thread");
-      memory->create(rngi,nthreads,"fc.param");
+      _memory->create(rngi,nthreads,"fc.param");
       for (int i = 0; i < nthreads; i++) rngi[i] = max_nbors;
     }
   }
   _ntypes = ntypes;
-  _memory = memory;
 }
 
 /* ----------------------------------------------------------------------

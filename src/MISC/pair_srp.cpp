@@ -84,8 +84,7 @@ PairSRP::PairSRP(LAMMPS *lmp) : Pair(lmp), fix_id(nullptr)
   //   will be invoked before other fixes that migrate atoms
   //   this is checked for in FixSRP
 
-  modify->add_fix(fmt::format("{:02d}_FIX_SRP all SRP",srp_instance));
-  f_srp = (FixSRP *) modify->fix[modify->nfix-1];
+  f_srp = (FixSRP *) modify->add_fix(fmt::format("{:02d}_FIX_SRP all SRP",srp_instance));
   ++srp_instance;
 }
 
@@ -360,11 +359,11 @@ void PairSRP::settings(int narg, char **arg)
   }
 
   // settings
-  midpoint = 0;
-  min = 0;
+  midpoint = false;
+  min = false;
 
-  if (strcmp(arg[2],"min") == 0) min = 1;
-  else if (strcmp(arg[2],"mid") == 0) midpoint = 1;
+  if (strcmp(arg[2],"min") == 0) min = true;
+  else if (strcmp(arg[2],"mid") == 0) midpoint = true;
   else
     error->all(FLERR,"Illegal pair_style command");
 
