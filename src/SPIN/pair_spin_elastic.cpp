@@ -155,8 +155,7 @@ void PairSpinElastic::init_style()
   PairSpin::init_style();
 
   // Creates r0 vector for initial atomic positions & ghost atoms
-  //if(atom -> natoms == atom->natoms + atom->nghost){
-	if(!allocated){
+  if(atom -> natoms == atom->natoms + atom->nghost){
 	// int nlocal = atom->nlocal;
 	int nall = atom->natoms + atom->nghost;
 	
