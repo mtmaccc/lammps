@@ -50,7 +50,7 @@ PairSpinElastic::~PairSpinElastic()
     memory->destroy(b2_mech);
     memory->destroy(cutsq); // to be deleted
     memory->destroy(emag);
-	//memory->destroy(r0);
+	//memory->destroy(r0); // to be fixed
 
     
   }
@@ -301,27 +301,20 @@ void PairSpinElastic::compute(int eflag, int vflag)
       rij[1] = x[j][1] - xi[1];
       rij[2] = x[j][2] - xi[2];
 	  
-	  //printf("CURRENT RIJ for atom i = %d and J =%d is rijx =%f rijy =%f rijz =%f \n",icomp, j,rij[0],rij[1],rij[2]);
-       //printf("NEW Rij part 1 check rxi = %f rxj = %f ryi = %f ryj = %f rzi = %f yzj = %f \n", xi[0],x[j][0],xi[1],x[j][1],xi[2],x[j][2]);
       // Create rij vector from atomic positions at begining of fix
       // get tag number corresponding to j
       
-	  ////printf("Natom = %d, Nghost = %d Natom+nghost = %d \n",natoms,atom->nghost,natoms+atom->nghost);
-      //printf("### test 1 atom i=%d, with tag i=%d, neigh j=%d, with tag=%d, and next tag=%d, out of natoms=%d \n",i,tag[i],j,tag[j],sametag[j],natoms);
-      if(j != tag[j] - 1) //ensures j atoms are constircted with tags defined during init //while (j >= natoms) 
+      if(j != tag[j] - 1) //ensures j atoms are constircted with tags defined during init /
       	j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
       if(i != tag[i] - 1)
 		 icomp = tag[i]-1;
-	 //j = sametag[j];
-      
-	  //printf("Rij check part 2 rxi = %f rxj = %f ryi = %f ryj = %f rzi = %f rzj = %f \n", xi[0],x[j][0],xi[1],x[j][1],xi[2],x[j][2]);
-	  //printf("# test 2 atom i=%d, with tag=%d, neigh j=%d, with tag=%d, and next tag=%d, out of natoms=%d \n",icomp,tag[i],j,tag[j],sametag[j],natoms);
+	
       // Create rij vector from atomic positions at begining of fix
       
       // SMART DISTANCE
       // send old atoms through smart distance to ensure pointing rij vector is correct only works on cubes? (I think)
       // scale sio & sjo by simuulation size
-      //printf("nonperiodic = %f \n",domain->nonperiodic);		 
+	  
 	  if(domain->nonperiodic == 0){
 		  sio[0] = r0[icomp][0]/Lx;
 		  sio[1] = r0[icomp][1]/Ly;
@@ -330,51 +323,30 @@ void PairSpinElastic::compute(int eflag, int vflag)
 		  sjo[1] = r0[j][1]/Ly;
 		  sjo[2] = r0[j][2]/Lz;
       
-		  // Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50
+		  // Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50 and simulation is small
 		  // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
-		  //printf("rij x check step 0 r0xi = %f r0xj = %f Lx = %f siox = %f sjox = %f \n", r0[i][0], r0[j][0], Lx, sio[0],sjo[0]);
 		  rijo[0] = sjo[0] - sio[0];
-		  //printf("rij x check step 1 = %f \n",rijo[0]);
 		  rijo[0] += 0.5;
-		  //printf("rij x check step 2 = %f \n",rijo[0]);
 		  rijo[0] -= floor(rijo[0]);
-		  //printf("rij x check step 3 = %f \n",rijo[0]);
 		  rijo[0] -= 0.5;
-		  //printf("rij x check step 4 = %f \n",rijo[0]);
 		  rijo[0] *= Lx;
-		  //printf("rij x check step 5 = %f \n",rijo[0]);
 
-          //printf("rij y check step 0 r0yi = %f r0yj = %f Ly = %f sioy = %f sjoy = %f \n", r0[i][1], r0[j][1], Ly, sio[1],sjo[1]);		 
 		  rijo[1] = sjo[1] - sio[1];
-		  //printf("rij y check step 1 = %f \n",rijo[1]);
 		  rijo[1] += 0.5;
-		  //printf("rij y check step 2 = %f \n",rijo[1]);
 		  rijo[1] -= floor(rijo[1]);
-		  //printf("rij y check step 3 = %f \n",rijo[1]);
 		  rijo[1] -= 0.5;
-		  //printf("rij y check step 4 = %f \n",rijo[1]);
 		  rijo[1] *= Ly;
-		  //printf("rij y check step 5 = %f \n",rijo[1]);
 		   
-		  //printf("rij z check step 0 r0zi = %f r0zj = %f Lz = %f sioz = %f sjoz = %f \n", r0[i][2], r0[j][2], Lz, sio[2],sjo[2]);
  		  rijo[2] = sjo[2] - sio[2];
-		  //printf("rij z check step 1 = %f \n",rijo[2]);
 		  rijo[2] += 0.5;
-		  //printf("rij z check step 2 = %f \n",rijo[2]);
 		  rijo[2] -= floor(rijo[2]);
-		  //printf("rij z check step 3 = %f \n",rijo[2]);
 		  rijo[2] -= 0.5;
-		  //printf("rij z check step 4 = %f \n",rijo[2]);
 		  rijo[2] *= Lz;
-		  //printf("rij z check step 5 = %f \n",rijo[2]);
 	  }
       else{
 		  rijo[0] = r0[j][0] - r0[icomp][0];
-		  //printf("Rij vector check =%f \n",rijo[0]);
 		  rijo[1] = r0[j][1] - r0[icomp][1];
-		  //printf("Rij vector check =%f \n",rijo[1]);
 		  rijo[2] = r0[j][2] - r0[icomp][2];
-		  //printf("Rij vector check =%f \n",rijo[2]);
 	  }	
 
       //define rsq & localcut 2 for cutoff criteria
@@ -382,7 +354,6 @@ void PairSpinElastic::compute(int eflag, int vflag)
       local_cut2 = cut_spin_elastic[itype][jtype]*cut_spin_elastic[itype][jtype];
 
 	  
-	  //printf("OLD RIJ for atom i = %d and J =%d is rijx =%f rijy =%f rijz =%f \n",icomp, j, rijo[0],rijo[1],rijo[2]);
       // Check rsq to ensure atom j is within cutoff 
       // If failed, atom j isnt a major contributor to strain on atom i  
       if (rsq <= local_cut2) {
@@ -394,15 +365,11 @@ void PairSpinElastic::compute(int eflag, int vflag)
           for (int ay = 0; ay<3; ay++){
 	    a[ax][ay] += (rijo[ax] * rijo[ay]);
 	    c[ax][ay] += (rijo[ax] * rij[ay]);
-			//printf("A matrix of atom i = %d & J =%d a1 =%f  a2 =%f  a3 =%f  a4 =%f a4alt =%f  a5 =%f a5alt =%f a6 =%f a6alt=%f \n ",icomp, j, a[0][0] ,a[1][1],a[2][2],a[2][1], a[1][2], a[2][0], a[0][2], a[1][0], a[0][1] );
-			//printf("C Matrix of atom i = %d & J =%d c1 =%f  c2 =%f  c3 =%f  c4 =%f c4alt =%f  c5 =%f c5alt =%f c6 =%f c6alt=%f \n ",icomp, j, c[0][0] ,c[1][1],c[2][2],c[2][1], c[1][2], c[2][0], c[2][0], c[1][0], c[0][1] );
           }
         }
 
       }
     }	
-	//printf("Final A matrix of atom i = %d j =%d a1 =%f  a2 =%f  a3 =%f  a4 =%f a4alt =%f  a5 =%f a5alt =%f a6 =%f a6alt=%f \n ",icomp, j ,a[0][0] ,a[1][1],a[2][2],a[2][1], a[1][2], a[2][0], a[0][2], a[1][0], a[0][1] );
-	//printf("Final C Matrix of atom i = %d j =%d c1 =%f  c2 =%f  c3 =%f  c4 =%f c4alt =%f  c5 =%f c5alt =%f c6 =%f c6alt=%f \n ",icomp, j ,c[0][0] ,c[1][1],c[2][2],c[2][1], c[1][2], c[2][0], c[2][0], c[1][0], c[0][1] );	
     
 	// Compute Transformation Matrix J (Ji = Vi^(-1)*Wi
     // *NOTE* Will throw an error if there are less than 3 neighboring atoms or only 3 atoms are coplanar  
@@ -437,7 +404,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
  
   //TEST ENERGY CALCULATION
  
-    printf("Strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f Lx =%f Ly =%f Lz =%f r0 atom 0 x =%f  \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], Lx, Ly, Lz, r0[0][0]);
+    //printf("Strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f Lx =%f Ly =%f Lz =%f r0 atom 0 x =%f  \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], Lx, Ly, Lz, r0[0][0]);
     compute_elastic(icomp,eij,fmi,spi);
 
     if (lattice_flag) {
@@ -467,7 +434,6 @@ void PairSpinElastic::compute(int eflag, int vflag)
          //   }
          // }
 
-         // printf("test k=%d out of natoms=%d \n",k,natoms);
 
          // Create rij vector from atomic positions at begining of fix
          
@@ -513,7 +479,6 @@ void PairSpinElastic::compute(int eflag, int vflag)
     // evdwl,ecoul,fi[0],fi[1],fi[2],rij[0],rij[1],rij[2]);
 	
   }
-//printf("### test 1 atom i=%d, neigh j=%d, with tag=%d, and next tag=%d, out of natoms=%d \n",i,j,tag[j],sametag[j],natoms);
   if (vflag_fdotr) virial_fdotr_compute();
 }
 
@@ -612,7 +577,7 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
       rij[1] = x[j][1] - xi[1];
       rij[2] = x[j][2] - xi[2];
 		
-	  //printf("CURRENT RIJ for atom i = %d and J =%d is rijx =%f rijy =%f rijz =%f \n",icomp, j,rij[0],rij[1],rij[2]);
+
       // Account for Ghost & re-indexed neighborlist atoms via utilzing j = tag[j]-1 
       if(j != tag[j] - 1) 
        j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1          
@@ -658,7 +623,6 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
 
      //Define rsq & localcut 2 for cutoff criteria    
 	  
-	  //printf("OLD RIJ for atom i = %d and J =%d is rijx =%f rijy =%f rijz =%f \n",icomp, j, rijo[0],rijo[1],rijo[2]);
       local_cut2 = cut_spin_elastic[itype][jtype]*cut_spin_elastic[itype][jtype];
       rsq = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2];
       
@@ -675,14 +639,10 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
           for (int ay = 0; ay<3; ay++){
 	    a[ax][ay] += (rijo[ax] * rijo[ay]);
 	    c[ax][ay] += (rijo[ax] * rij[ay]);
-			//printf("A matrix of atom i = %d & J =%d a1 =%f  a2 =%f  a3 =%f  a4 =%f a4alt =%f  a5 =%f a5alt =%f a6 =%f a6alt=%f \n ",icomp, j, a[0][0] ,a[1][1],a[2][2],a[2][1], a[1][2], a[2][0], a[0][2], a[1][0], a[0][1] );
-			//printf("C Matrix of atom i = %d & J =%d c1 =%f  c2 =%f  c3 =%f  c4 =%f c4alt =%f  c5 =%f c5alt =%f c6 =%f c6alt=%f \n ",icomp, j, c[0][0] ,c[1][1],c[2][2],c[2][1], c[1][2], c[2][0], c[2][0], c[1][0], c[0][1] );
 			}	
 		}
       }
     }
-  	//printf("Final A matrix of atom i = %d j =%d a1 =%f  a2 =%f  a3 =%f  a4 =%f a4alt =%f  a5 =%f a5alt =%f a6 =%f a6alt=%f \n ",icomp, j ,a[0][0] ,a[1][1],a[2][2],a[2][1], a[1][2], a[2][0], a[0][2], a[1][0], a[0][1] );
-	//printf("Final C Matrix of atom i = %d j =%d c1 =%f  c2 =%f  c3 =%f  c4 =%f c4alt =%f  c5 =%f c5alt =%f c6 =%f c6alt=%f \n ",icomp, j ,c[0][0] ,c[1][1],c[2][2],c[2][1], c[1][2], c[2][0], c[2][0], c[1][0], c[0][1] );	
     // START CALCULATIONS HERE
     // Compute Transformation Matrix J (Ji = Vi^-1*Wi)
     // *NOTE* WILL throw an error if there are less than 3 neighboring atoms, Error check?
@@ -713,7 +673,7 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
         eij[cx][cy] *= 0.5;
 	  }
 	}
-	printf("Strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f Lx =%f Ly =%f Lz =%f r0 atom 0 x =%f  \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], Lx, Ly, Lz, r0[0][0]);
+	//printf("Strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f Lx =%f Ly =%f Lz =%f r0 atom 0 x =%f  \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], Lx, Ly, Lz, r0[0][0]);
     // Compute Elastic Interaction
     compute_elastic(ii,eij,fmi,spi);
   }
@@ -755,16 +715,6 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
   double firstx, firsty, firstz;
   double secondx, secondy, secondz;
 
- //ENERGY VERIFICATION
- 
-//    eij[0][0] = 0.01;
-//    eij[1][1] = 0.01;
-//    eij[2][2] = 0.01;
-//    eij[0][1] = 0.01;
-//    eij[0][2] = 0.01;
-//    eij[1][2] = 0.01;
-
-
   //create x,y,z components of spin (si * ni) = alphi
   skx = spi[0]*n1x+spi[1]*n1y+spi[2]*n1z;
   sky = spi[0]*n2x+spi[1]*n2y+spi[2]*n2z;
@@ -788,7 +738,6 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
   fmi[1] += (firsty + secondy);
   fmi[2] += (firstz + secondz);
 
- //printf("Heff Magnetoelastic atom i = %d fmx =%f fmy =%f fmz =%f  \n ",i,fmi[0],fmi[1],fmi[2]);
 /* OLD NEEL ELASTIC COMPUTE
   double qr,gr,g1r,q1r,q2r,ra;
   double pdx, pdy, pdz;
