@@ -24,6 +24,7 @@
 
 #include "pair_spin_neel.h"
 
+
 #include "atom.h"
 #include "comm.h"
 #include "error.h"
@@ -438,6 +439,7 @@ void PairSpinNeel::compute_neel(int i, int j, double rsq, double eij[3], double 
   fmi[0] += (pdx + pq1x + pq2x);
   fmi[1] += (pdy + pq1y + pq2y);
   fmi[2] += (pdz + pq1z + pq2z);
+  
 }
 
 /* ---------------------------------------------------------------------- */

@@ -281,7 +281,6 @@ void PairSpinExchange::compute(int eflag, int vflag)
       }
     }
   }
-
   if (vflag_fdotr) virial_fdotr_compute();
 }
 
@@ -363,6 +362,7 @@ void PairSpinExchange::compute_single_pair(int ii, double fmi[3])
       }
     }
   }
+   //printf("Exchange TOTAL Heff (single pair) atom i = %d fmx =%f fmy =%f fmz =%f  \n ",ii,fmi[0],fmi[1],fmi[2]);
 }
 
 /* ----------------------------------------------------------------------
@@ -385,6 +385,7 @@ void PairSpinExchange::compute_exchange(int i, int j, double rsq, double fmi[3],
   fmi[0] += Jex*spj[0];
   fmi[1] += Jex*spj[1];
   fmi[2] += Jex*spj[2];
+  //printf("Heff Exchange atom i = %d atom j = %d fmx =%f fmy =%f fmz =%f  \n ",i,j,fmi[0],fmi[1],fmi[2]);
 }
 
 /* ----------------------------------------------------------------------

@@ -385,6 +385,7 @@ void FixPrecessionSpin::post_force(int /* vflag */)
       fm[i][0] += fmi[0];
       fm[i][1] += fmi[1];
       fm[i][2] += fmi[2];
+	  
     }
   }
 }
@@ -506,6 +507,7 @@ void FixPrecessionSpin::compute_cubic(double spi[3], double fmi[3])
   fmi[0] += (fourx + sixx);
   fmi[1] += (foury + sixy);
   fmi[2] += (fourz + sixz);
+  
 }
 
 /* ---------------------------------------------------------------------- */

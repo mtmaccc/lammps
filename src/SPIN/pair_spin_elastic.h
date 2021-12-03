@@ -58,6 +58,9 @@ class PairSpinElastic : public PairSpin {
    // store r0 starting atom positions used in strain (Must be in Ground State)
 
   double **r0;
+  
+  // Box dimensions for smart distancing method of r0
+  double Lx,Ly,Lz;
 
   // Elastic Equation Variables
 

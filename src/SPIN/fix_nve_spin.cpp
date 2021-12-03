@@ -24,6 +24,7 @@
 
 #include "fix_nve_spin.h"
 
+
 #include "atom.h"
 #include "citeme.h"
 #include "comm.h"
@@ -547,7 +548,6 @@ void FixNVESpin::ComputeInteractionsSpin(int i)
   }
 
   // replace the magnetic force fm[i] by its new value fmi
-
   fm[i][0] = fmi[0];
   fm[i][1] = fmi[1];
   fm[i][2] = fmi[2];
