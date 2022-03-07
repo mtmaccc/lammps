@@ -100,6 +100,14 @@ static const char cite_neigh_multi[] =
   " year = {2020}\n"
   "}\n\n";
 
+// template for factory functions:
+// there will be one instance for each style keyword in the respective style_xxx.h files
+
+template <typename S, typename T> static S *style_creator(LAMMPS *lmp)
+{
+  return new T(lmp);
+}
+
 //#define NEIGH_LIST_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
@@ -693,7 +701,7 @@ void Neighbor::init_styles()
 #define NBIN_CLASS
 #define NBinStyle(key,Class,bitmasks) \
   binnames[nbclass] = (char *) #key; \
-  binclass[nbclass] = &bin_creator<Class>; \
+  binclass[nbclass] = &style_creator<NBin, Class>;   \
   binmasks[nbclass++] = bitmasks;
 #include "style_nbin.h"  // IWYU pragma: keep
 #undef NBinStyle
@@ -717,7 +725,7 @@ void Neighbor::init_styles()
 #define NSTENCIL_CLASS
 #define NStencilStyle(key,Class,bitmasks) \
   stencilnames[nsclass] = (char *) #key; \
-  stencilclass[nsclass] = &stencil_creator<Class>; \
+  stencilclass[nsclass] = &style_creator<NStencil, Class>;   \
   stencilmasks[nsclass++] = bitmasks;
 #include "style_nstencil.h"  // IWYU pragma: keep
 #undef NStencilStyle
@@ -741,7 +749,7 @@ void Neighbor::init_styles()
 #define NPAIR_CLASS
 #define NPairStyle(key,Class,bitmasks) \
   pairnames[npclass] = (char *) #key; \
-  pairclass[npclass] = &pair_creator<Class>; \
+  pairclass[npclass] = &style_creator<NPair, Class>;  \
   pairmasks[npclass++] = bitmasks;
 #include "style_npair.h"  // IWYU pragma: keep
 #undef NPairStyle
@@ -2029,36 +2037,6 @@ int Neighbor::request(void *requestor, int instance)
 }
 
 /* ----------------------------------------------------------------------
-   one instance per entry in style_neigh_bin.h
-------------------------------------------------------------------------- */
-
-template <typename T>
-NBin *Neighbor::bin_creator(LAMMPS *lmp)
-{
-  return new T(lmp);
-}
-
-/* ----------------------------------------------------------------------
-   one instance per entry in style_neigh_stencil.h
-------------------------------------------------------------------------- */
-
-template <typename T>
-NStencil *Neighbor::stencil_creator(LAMMPS *lmp)
-{
-  return new T(lmp);
-}
-
-/* ----------------------------------------------------------------------
-   one instance per entry in style_neigh_pair.h
-------------------------------------------------------------------------- */
-
-template <typename T>
-NPair *Neighbor::pair_creator(LAMMPS *lmp)
-{
-  return new T(lmp);
-}
-
-/* ----------------------------------------------------------------------
    setup neighbor binning and neighbor stencils
    called before run and every reneighbor if box size/shape changes
    only operates on perpetual lists
@@ -2410,15 +2388,11 @@ void Neighbor::modify_params(int narg, char **arg)
       iarg += 2;
     } else if (strcmp(arg[iarg],"check") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal neigh_modify command");
-      if (strcmp(arg[iarg+1],"yes") == 0) dist_check = 1;
-      else if (strcmp(arg[iarg+1],"no") == 0) dist_check = 0;
-      else error->all(FLERR,"Illegal neigh_modify command");
+      dist_check = utils::logical(FLERR,arg[iarg+1],false,lmp);
       iarg += 2;
     } else if (strcmp(arg[iarg],"once") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal neigh_modify command");
-      if (strcmp(arg[iarg+1],"yes") == 0) build_once = 1;
-      else if (strcmp(arg[iarg+1],"no") == 0) build_once = 0;
-      else error->all(FLERR,"Illegal neigh_modify command");
+      build_once = utils::logical(FLERR,arg[iarg+1],false,lmp);
       iarg += 2;
     } else if (strcmp(arg[iarg],"page") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal neigh_modify command");
@@ -2438,9 +2412,7 @@ void Neighbor::modify_params(int narg, char **arg)
       iarg += 2;
     } else if (strcmp(arg[iarg],"cluster") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal neigh_modify command");
-      if (strcmp(arg[iarg+1],"yes") == 0) cluster_check = 1;
-      else if (strcmp(arg[iarg+1],"no") == 0) cluster_check = 0;
-      else error->all(FLERR,"Illegal neigh_modify command");
+      cluster_check = utils::logical(FLERR,arg[iarg+1],false,lmp);
       iarg += 2;
 
     } else if (strcmp(arg[iarg],"include") == 0) {
