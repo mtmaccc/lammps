@@ -11,7 +11,7 @@ boundary 	p p p
 atom_modify 	map array 
 
 lattice fcc 	3.54
-region box 	block 0.0 5.0 0.0 5.0 0.0 5.0
+region box 	block 0.0 2.0 0.0 2.0 0.0 2.0
 create_box 	1 box
 create_atoms 	1 box
 
@@ -20,7 +20,7 @@ create_atoms 	1 box
 mass		1 58.93
 
 #set 		group all spin/random 31 1.72
-set 		group all spin 1.72 0.0 0.0 1.0
+set 		group all spin 1.72 1.0 1.0 1.0
 velocity 	all create 100 4928459 rot yes dist gaussian
 
 pair_style 	hybrid/overlay eam/alloy spin/exchange 4.0
@@ -30,10 +30,10 @@ pair_coeff 	* * spin/exchange exchange 4.0 0.0446928 0.003496 1.4885
 neighbor 	0.1 bin
 neigh_modify 	every 10 check yes delay 20
 
-fix 		1 all precession/spin zeeman 1.0 0.0 0.0 1.0
+fix 		1 all precession/spin zeeman 10.0 0.0 0.0 1.0
 fix_modify 	1 energy yes
 
-fix 		2 all langevin/spin 0.0 0.0 21
+fix 		2 all langevin/spin 100.0 0.0 21
 
 fix 		3 all nve/spin lattice moving
 timestep	0.0001
@@ -55,7 +55,7 @@ variable 	tmag      equal c_out_mag[6]
 thermo_style    custom step time v_magx v_magy v_magnorm pe v_emag temp etotal
 thermo          50
 
-# compute 	outsp all property/atom spx spy spz sp fmx fmy fmz
-# dump 		1 all custom 100 dump_cobalt_fcc.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+ compute 	outsp all property/atom spx spy spz sp fmx fmy fmz
+ dump 		1 all custom 10 dump_cobalt_fcc.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
 
-run 		1000
+run 		10000

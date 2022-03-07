@@ -3,13 +3,13 @@
 units 		metal
 atom_style 	spin
 dimension 	3
-boundary 	p p f
+boundary 	f f f
 
 # necessary for the serial algorithm (sametag)
 atom_modify 	map array 
 
 lattice 	sc 3.96
-region 		box block 0.0 34.0 0.0 34.0 0.0 5.0
+region 		box block 0.0 1.1 0.0 1.1 0.0 1.1
 create_box 	1 box
 create_atoms 	1 box
 
@@ -45,9 +45,9 @@ variable 	emag	 equal c_out_mag[5]
 variable 	tmag	 equal c_out_mag[6]
 
 thermo_style    custom step time v_magnorm pe v_emag temp etotal
-thermo          50
+thermo          100
 
 compute outsp all property/atom spx spy spz sp fmx fmy fmz
 dump 		1 all custom 100 dump_bfo.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
 
-run 		500
+run 		10000
