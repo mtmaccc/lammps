@@ -73,8 +73,6 @@ class PairSpinElastic : public PairSpin {
   // Previous strain value for direct magnetoelastic effect
   
   double **e0;
-  double **rprev;
-  double **oldbound;
 
   void allocate();
 };
