@@ -423,8 +423,8 @@ void PairSpinElastic::compute(int eflag, int vflag)
  
   //TEST ENERGY CALCULATION
  
-    printf("Current strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
-    printf("Previous strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
+    //printf("Current strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
+    //printf("Previous strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
     
     //compute Effective Field
     compute_elastic(icomp,eij,fmi,spi);
@@ -536,15 +536,15 @@ void PairSpinElastic::compute(int eflag, int vflag)
 	
 	if (rsq <= local_cut2) {
 	 // loop over 3 directions to form magnetoelastic Newtonian force
-	printf("Atom Current i = %d x=%f y=%f z=%f Atom Current  j = %d x=%f y=%f z=%f \n ",icomp,xi[0],xi[1],xi[2],jcomp,x[j][0], x[j][1],x[j][2]);
+	//printf("Atom Current i = %d x=%f y=%f z=%f Atom Current  j = %d x=%f y=%f z=%f \n ",icomp,xi[0],xi[1],xi[2],jcomp,x[j][0], x[j][1],x[j][2]);
 	//printf("Atom Previous i = %d x=%f y=%f z=%f Atom Previous  j = %d x=%f y=%f z=%f \n ",icomp,rprev[icomp][0],rprev[icomp][1],rprev[icomp][2],jcomp,rprev[jcomp][0],rprev[jcomp][1],rprev[jcomp][2]);
-	printf("Mech betweenn atom i = %d atom j = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
+	//printf("Mech betweenn atom i = %d atom j = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
 	 for(int dir=0; dir<3; dir++){
 	   
-	printf("Values to mech calc i = %d j=%d 'j'= %d direction = %d nearest = %d,current rij @ direction = %f old rij @ direction = %f eij = %f  fi =%f, spi =%f  \n ",icomp,j, jcomp,dir,nearest,rij[dir],rijo[dir],eij[dir][dir],fi[dir],spi[dir]);
+	//printf("Values to mech calc i = %d j=%d 'j'= %d direction = %d nearest = %d,current rij @ direction = %f old rij @ direction = %f eij = %f  fi =%f, spi =%f  \n ",icomp,j, jcomp,dir,nearest,rij[dir],rijo[dir],eij[dir][dir],fi[dir],spi[dir]);
            compute_elastic_mech(icomp,dir,nearest,rij[dir],rijo[dir], eij,fi,spi); // fix eventually
 	 }	
-	printf("Forces between atom i = %d j=%d 'j'= %d xfi=%f, yfi =%f, zfi =%f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
+	//printf("Forces between atom i = %d j=%d 'j'= %d xfi=%.16f, yfi =%.16f, zfi =%.16f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
     	f[i][0] += fi[0]; //mechancial force
     	f[i][1] += fi[1];
     	f[i][2] += fi[2];
@@ -830,7 +830,6 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   itype = type[i];
 
   double skx,sky,skz,skx2,sky2,skz2;
-  double e1,e2,e3,e4,e5,e6;
   double de1,de2,de3,de4,de5,de6;
   double dedir1,dedir2,dedir3;
   double dedir4,dedir5,dedir6;
@@ -851,88 +850,55 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   //first check to make sure atoms have moved (Make smarter?
   //if(abs(eij[0][0]) == 0.0 && abs(eij[1][1] )== 0.0 && abs(eij[2][2]) == 0.0)
 
-  if(rij == rijPrevious) return;
+  if(rij - rijPrevious < 1e-8 ) return;
  
   //if(update->ntimestep = 0)  return;
   //create initial derivative incoperating spin state
   //currently works only in monotype system. FIX LATER
   de1 = b1_mech[itype][itype]*(skx2);
-  printf("de1 spin state = %f \n ",de1);
+  //printf("de1 spin state = %.16f \n ",de1);
   de2 = b1_mech[itype][itype]*(sky2);
-  printf("de2 spin state = %f \n ",de2);
+  //printf("de2 spin state = %.16f \n ",de2);
   de3 = b1_mech[itype][itype]*(skz2);
-  printf("de3 spin state = %f \n ",de3);
+  //printf("de3 spin state = %.16f \n ",de3);
   de4 = b2_mech[itype][itype]*(sky * skz);
-  printf("de4 spin state= %f \n ",de4);
+  //printf("de4 spin state= %.16f \n ",de4);
   de5 = b2_mech[itype][itype]*(skx * skz);
-  printf("de5 spin state= %f \n ",de5);
+  //printf("de5 spin state= %.16f \n ",de5);
   de6 = b2_mech[itype][itype]*(skx * sky);
-  printf("de6 spin state= %f \n ",de6);
+  //printf("de6 spin state= %.16f \n ",de6);
 
   //under assumption atom has moved, chain rule six strains with de/dir
   
-  printf("rij current  = %f rij refrence =%f Current-reference=%f \n ",rij,rijPrevious,rij-rijPrevious);
-  printf("Strain Precheck i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f validator =%f  \n ",i ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], 1e-08);
-  
-  
-  // get strains for calculation 
-  if(1e-10 >= abs(eij[0][0]))
-	  e1 = 0.0;
-  else
-	  e1 = eij[0][0];
-
-  if(1e-10 >= abs(eij[1][1]))
-	  e2 = 0.0;
-  else
-	  e2 = eij[1][1];
-  
-  if(1e-10 >= abs(eij[2][2]))
-	  e3 = 0.0;
-  else
-	  e3 = eij[2][2];
-  
-  if(1e-10 >= abs(eij[2][1]))
-	  e4 = 0.0;
-  else
-	  e4 = eij[2][1];
-  
-  if(1e-10 >= abs(eij[2][0]))
-	  e5 = 0.0;
-  else
-	  e5 = eij[2][0];
-  
-  if(1e-10 >= abs(eij[1][0]))
-	  e6 = 0.0;
-  else
-	  e6 = eij[1][0];
-  
-  dedir1 = (e1 + e0[i][0]) /  (rij - rijPrevious);
-  printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%f  \n ",e1,e0[i][0],e1+e0[i][0], (e1 + e0[i][0])  / (rij - rijPrevious));
-  dedir2 = (e2 + e0[i][1]) /  (rij - rijPrevious);
-  printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%f  \n ",e2,e0[i][1],e2+e0[i][1], (e2 + e0[i][1])  / (rij - rijPrevious));
-  dedir3 = (e3 + e0[i][2]) /  (rij - rijPrevious);
-  printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%f  \n ",e3,e0[i][2],e3+e0[i][2], (e3 + e0[i][2])  / (rij - rijPrevious));
-  dedir4 = (e4 + e0[i][3]) /  (rij - rijPrevious);
-  printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%f  \n ",e4,e0[i][3],e4+e0[i][3], (e4 + e0[i][3])  / (rij - rijPrevious));
-  dedir5 = (e5 + e0[i][4]) /  (rij - rijPrevious);
-  printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%f  \n ",e5,e0[i][4],e5+e0[i][4], (e5 + e0[i][4])  / (rij - rijPrevious));
-  dedir6 = (e6 + e0[i][5]) /  (rij - rijPrevious);
-  printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%f  \n ",e6,e0[i][5],e6+e0[i][5], (e6 + e0[i][5])  / (rij - rijPrevious));
+  //printf("rij current  = %.16f rij refrence =%.16f Current-reference=%.16f \n ",rij,rijPrevious,rij-rijPrevious);
+  //printf("Strain Precheck i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f validator =%.16f  \n ",i ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], abs(eij[0][0]));
+  dedir1 = (eij[0][0] + e0[i][0]) /  (rij - rijPrevious);
+  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[0][0],e0[i][0],eij[0][0]+e0[i][0], (eij[0][0] + e0[i][0])  / (rij - rijPrevious));
+  dedir2 = (eij[1][1] + e0[i][1]) /  (rij - rijPrevious);
+  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[1][1],e0[i][1],eij[1][1]+e0[i][1], (eij[1][1] + e0[i][1])  / (rij - rijPrevious));
+  dedir3 = (eij[2][2] + e0[i][2]) /  (rij - rijPrevious);
+  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[2][2],e0[i][2],eij[2][2]+e0[i][2], (eij[2][2] + e0[i][2])  / (rij - rijPrevious));
+  dedir4 = (eij[2][1] + e0[i][3]) /  (rij - rijPrevious);
+  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[2][1],e0[i][3],eij[2][1]+e0[i][3], (eij[2][1] + e0[i][3])  / (rij - rijPrevious));
+  dedir5 = (eij[2][0] + e0[i][4]) /  (rij - rijPrevious);
+  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[2][0],e0[i][4],eij[2][0]+e0[i][4], (eij[2][0] + e0[i][4])  / (rij - rijPrevious));
+  dedir6 = (eij[1][0] + e0[i][5]) /  (rij - rijPrevious);
+  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[1][0],e0[i][5],eij[1][0]+e0[i][5], (eij[1][0] + e0[i][5])  / (rij - rijPrevious));
   
   
   //Multiple stres de's by chain ruled dedir
   de1 *= dedir1;
-  printf("de1 post chain rule = %f \n ",de1);
+  //printf("de1 post chain rule = %.16f \n ",de1);
   de2 *= dedir2;
-  printf("de2 post chain rule = %f \n ",de2);
+  //printf("de2 post chain rule = %.16f \n ",de2);
   de3 *= dedir3;
-  printf("de3 post chain rule = %f \n ",de3);
+  //printf("de3 post chain rule = %.16f \n ",de3);
   de4 *= dedir4;
-  printf("de4 post chain rule = %f \n ",de4);
+  //printf("de4 post chain rule = %.16f \n ",de4);
   de5 *= dedir5;
-  printf("de5 post chain rule = %f \n ",de5);
+  //printf("de5 post chain rule = %.16f \n ",de5);
   de6 *= dedir6;
-  printf("de6 post chain rule = %f \n ",de6);
+  //printf("de6 post chain rule = %.16f \n ",de6);
   
   //assume all atoms have equal contribution to forces
   //Be careful, may not work if volume is not conserved
@@ -941,7 +907,7 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   //add forces to total force component
   detotal = de1+de2+de3+de4+de5+de6;
 
-  printf("normalization correction =%f total force = %f final force returned =%f  \n ",invnear,detotal,invnear*detotal);
+  //printf("normalization correction =%.16f total force = %.16f final force returned =%.16f  \n ",invnear,detotal,invnear*detotal);
   fi[dir] -= invnear*detotal;
 
 }
