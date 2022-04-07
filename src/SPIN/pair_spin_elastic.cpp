@@ -423,12 +423,22 @@ void PairSpinElastic::compute(int eflag, int vflag)
  
   //TEST ENERGY CALCULATION
  
-    //printf("Current strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
-    //printf("Previous strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
+    printf("Current strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
+    printf("Previous strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
     
     //compute Effective Field
     compute_elastic(icomp,eij,fmi,spi);
 
+    fm[i][0] += fmi[0]; //Magnetic Force
+    fm[i][1] += fmi[1];
+    fm[i][2] += fmi[2];
+   
+    // calculate energy contributions
+    if (eflag) {
+      evdwl -= compute_elastic_energy(i,eij,spi);
+      emag[i] += evdwl;
+    } else evdwl = 0.0;
+    
     //if (lattice_flag) {
        //Loop on Neighbors of atom I to create elastic mech forces
        for (jj = 0; jj < jnum; jj++) {
@@ -454,46 +464,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
 
 	if(jcomp != tag[j] - 1) //ensures j atoms are constircted with tags defined during init /
 	   jcomp = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
-	 //Get rij from previous timestep
-	 //if(domain->nonperiodic == 0){
-	/*if(jcomp != tag[j] - 1){ //ensures j atoms are constircted with tags defined during init /
-	   jcomp = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
-	   oldLx = oldbound[0][0];
-  	   oldLy = oldbound[0][1];
-	   oldLz = oldbound[0][2];
-
-	   sio[0] = rprev[icomp][0]/oldLx;
- 	   sio[1] = rprev[icomp][1]/oldLy;
-	   sio[2] = rprev[icomp][2]/oldLz;
-	   sjo[0] = rprev[jcomp][0]/oldLx;
-	   sjo[1] = rprev[jcomp][1]/oldLy;
-	   sjo[2] = rprev[jcomp][2]/oldLz;
-      
-	   // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
-	   rijo[0] = sjo[0] - sio[0];
-	   rijo[0] += 0.5;
-	   rijo[0] -= floor(rijo[0]);
-	   rijo[0] -= 0.5;
-	   rijo[0] *= oldLx;
-
-	   rijo[1] = sjo[1] - sio[1];
-	   rijo[1] += 0.5;
-	   rijo[1] -= floor(rijo[1]);
-	   rijo[1] -= 0.5;
-	   rijo[1] *= oldLy;
-		   
- 	   rijo[2] = sjo[2] - sio[2];
-	   rijo[2] += 0.5;
-	   rijo[2] -= floor(rijo[2]);
-	   rijo[2] -= 0.5;
-	   rijo[2] *= oldLz;
-	  }
-      	  else{
-	   rijo[0] = rprev[jcomp][0] - rprev[icomp][0];
-	   rijo[1] = rprev[jcomp][1] - rprev[icomp][1];
-	   rijo[2] = rprev[jcomp][2] - rprev[icomp][2];
-	  }*/
-
+	 //Get rij from reference timestep
 	 if(domain->nonperiodic == 0){
 	   sio[0] = r0[icomp][0]/Lx;
  	   sio[1] = r0[icomp][1]/Ly;
@@ -537,14 +508,11 @@ void PairSpinElastic::compute(int eflag, int vflag)
 	if (rsq <= local_cut2) {
 	 // loop over 3 directions to form magnetoelastic Newtonian force
 	//printf("Atom Current i = %d x=%f y=%f z=%f Atom Current  j = %d x=%f y=%f z=%f \n ",icomp,xi[0],xi[1],xi[2],jcomp,x[j][0], x[j][1],x[j][2]);
-	//printf("Atom Previous i = %d x=%f y=%f z=%f Atom Previous  j = %d x=%f y=%f z=%f \n ",icomp,rprev[icomp][0],rprev[icomp][1],rprev[icomp][2],jcomp,rprev[jcomp][0],rprev[jcomp][1],rprev[jcomp][2]);
-	//printf("Mech betweenn atom i = %d atom j = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
+	printf("rij betweenn atom i = %d atom 'j' = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
 	 for(int dir=0; dir<3; dir++){
-	   
-	//printf("Values to mech calc i = %d j=%d 'j'= %d direction = %d nearest = %d,current rij @ direction = %f old rij @ direction = %f eij = %f  fi =%f, spi =%f  \n ",icomp,j, jcomp,dir,nearest,rij[dir],rijo[dir],eij[dir][dir],fi[dir],spi[dir]);
            compute_elastic_mech(icomp,dir,nearest,rij[dir],rijo[dir], eij,fi,spi); // fix eventually
 	 }	
-	//printf("Forces between atom i = %d j=%d 'j'= %d xfi=%.16f, yfi =%.16f, zfi =%.16f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
+	printf("Forces between atom i = %d j=%d 'j'= %d xfi=%.16f, yfi =%.16f, zfi =%.16f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
     	f[i][0] += fi[0]; //mechancial force
     	f[i][1] += fi[1];
     	f[i][2] += fi[2];
@@ -559,15 +527,6 @@ void PairSpinElastic::compute(int eflag, int vflag)
        }
    // }
 
-    fm[i][0] += fmi[0]; //Magnetic Force
-    fm[i][1] += fmi[1];
-    fm[i][2] += fmi[2];
-    
-    //VERYFY THIS DOESNT NEED TO BE PLACED WITHIN J LOOP
-    if (eflag) {
-      evdwl -= compute_elastic_energy(i,eij,spi);
-      emag[i] += evdwl;
-    } else evdwl = 0.0;
    
     // update previous  strain for next timestep
     e0[icomp][0] = eij[0][0];
@@ -576,11 +535,6 @@ void PairSpinElastic::compute(int eflag, int vflag)
     e0[icomp][3] = eij[2][1];
     e0[icomp][4] = eij[2][0];
     e0[icomp][5] = eij[1][0];
-	
-
-    // if (evflag) ev_tally_xyz(i,j,nlocal,newton_pair,   //Need to fix implementation with strain what rij to use?
-    // evdwl,ecoul,fi[0],fi[1],fi[2],rij[0],rij[1],rij[2]);
-	
   }
   
   if (vflag_fdotr) virial_fdotr_compute();
@@ -846,12 +800,24 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   skz2 = skz*skz;
 
   //create de/ddir to chainrul to convert from strains to forces
-  //printf("e1 = %f, e2=%f e3=%f \n" , abs(eij[0][0]),abs(eij[1][1]),abs(eij[2][2])); 
-  //first check to make sure atoms have moved (Make smarter?
-  //if(abs(eij[0][0]) == 0.0 && abs(eij[1][1] )== 0.0 && abs(eij[2][2]) == 0.0)
+  //check to ensure that atoms have move from refernce configuration
+  
 
-  if(rij - rijPrevious < 1e-8 ) return;
+  
+  printf("rij - rijPrevious = %.16f rijPrevious - rij = %.16f floor rij - rijPrevious = %.16f floor rijprevious - rij  = %.16f \n", rij-rijPrevious, rijPrevious - rij, floor(rij-rijPrevious), floor(rijPrevious-rij) );  
+  //if(rij - rijPrevious < 0)i
+  
+  if(rij - rijPrevious < 1e-9){
+	  if(rijPrevious - rij < 1e-9){
+		  return;
+	  }
+  }
+   
  
+
+  
+  
+  
   //if(update->ntimestep = 0)  return;
   //create initial derivative incoperating spin state
   //currently works only in monotype system. FIX LATER
@@ -907,8 +873,9 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   //add forces to total force component
   detotal = de1+de2+de3+de4+de5+de6;
 
-  //printf("normalization correction =%.16f total force = %.16f final force returned =%.16f  \n ",invnear,detotal,invnear*detotal);
+  printf("normalization correction =%.16f total force = %.16f final force returned =%.16f  \n ",invnear,detotal,invnear*detotal);
   fi[dir] -= invnear*detotal;
+  
 
 }
 
