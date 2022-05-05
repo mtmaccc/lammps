@@ -43,7 +43,8 @@
 #  init.mod. 
 #
 
-include init.mod
+#include init.mod
+include init_iron.mod
 include potential.mod
 
 # Compute initial state

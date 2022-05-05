@@ -2,8 +2,11 @@
 # See in.elastic for more info.
 
 # Choose potential
-pair_style	sw
-pair_coeff * * Si.sw Si
+#pair_style	sw
+#pair_coeff * * Si.sw Si
+
+pair_style 	meam
+pair_coeff	* * library.Fe.meam Fe Fe.meam Fe
 
 # Setup neighbor style
 neighbor 1.0 nsq

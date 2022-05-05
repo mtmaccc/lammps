@@ -423,8 +423,8 @@ void PairSpinElastic::compute(int eflag, int vflag)
  
   //TEST ENERGY CALCULATION
  
-    printf("Current strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
-    printf("Previous strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
+    //printf("Current strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
+    //printf("Previous strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
     
     //compute Effective Field
     compute_elastic(icomp,eij,fmi,spi);
@@ -439,6 +439,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
       emag[i] += evdwl;
     } else evdwl = 0.0;
     
+    //printf("Current Magnetoelastic Energy on atom  i = %d Energy = %.16f\n",icomp ,evdwl);
     //if (lattice_flag) {
        //Loop on Neighbors of atom I to create elastic mech forces
        for (jj = 0; jj < jnum; jj++) {
@@ -508,11 +509,11 @@ void PairSpinElastic::compute(int eflag, int vflag)
 	if (rsq <= local_cut2) {
 	 // loop over 3 directions to form magnetoelastic Newtonian force
 	//printf("Atom Current i = %d x=%f y=%f z=%f Atom Current  j = %d x=%f y=%f z=%f \n ",icomp,xi[0],xi[1],xi[2],jcomp,x[j][0], x[j][1],x[j][2]);
-	printf("rij betweenn atom i = %d atom 'j' = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
+	//printf("rij betweenn atom i = %d atom 'j' = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
 	 for(int dir=0; dir<3; dir++){
            compute_elastic_mech(icomp,dir,nearest,rij[dir],rijo[dir], eij,fi,spi); // fix eventually
 	 }	
-	printf("Forces between atom i = %d j=%d 'j'= %d xfi=%.16f, yfi =%.16f, zfi =%.16f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
+	//printf("Forces between atom i = %d j=%d 'j'= %d ,xfi=%.16f, yfi =%.16f, zfi =%.16f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
     	f[i][0] += fi[0]; //mechancial force
     	f[i][1] += fi[1];
     	f[i][2] += fi[2];
@@ -802,21 +803,13 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   //create de/ddir to chainrul to convert from strains to forces
   //check to ensure that atoms have move from refernce configuration
   
-
-  
-  printf("rij - rijPrevious = %.16f rijPrevious - rij = %.16f floor rij - rijPrevious = %.16f floor rijprevious - rij  = %.16f \n", rij-rijPrevious, rijPrevious - rij, floor(rij-rijPrevious), floor(rijPrevious-rij) );  
-  //if(rij - rijPrevious < 0)i
+  //printf("rij - rijPrevious = %.16f rijPrevious - rij = %.16f floor rij - rijPrevious = %.16f floor rijprevious - rij  = %.16f \n", rij-rijPrevious, rijPrevious - rij, floor(rij-rijPrevious), floor(rijPrevious-rij) );  
   
   if(rij - rijPrevious < 1e-9){
 	  if(rijPrevious - rij < 1e-9){
 		  return;
 	  }
   }
-   
- 
-
-  
-  
   
   //if(update->ntimestep = 0)  return;
   //create initial derivative incoperating spin state
@@ -873,7 +866,7 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   //add forces to total force component
   detotal = de1+de2+de3+de4+de5+de6;
 
-  printf("normalization correction =%.16f total force = %.16f final force returned =%.16f  \n ",invnear,detotal,invnear*detotal);
+  //printf("normalization correction =%.16f total force = %.16f final force returned =%.16f  \n ",invnear,detotal,invnear*detotal);
   fi[dir] -= invnear*detotal;
   
 
@@ -901,7 +894,7 @@ double PairSpinElastic::compute_elastic_energy(int i, double eij[3][3], double s
   //should energy var be positive or negative????
   //also only works in a monotype system FIX THIS
   */
-  energy = b1_mech[itype][itype]*(skx*skx*eij[0][0] + sky*sky*eij[1][1] + skx*skx*eij[2][2]);
+  energy = b1_mech[itype][itype]*(skx*skx*eij[0][0] + sky*sky*eij[1][1] + skz*skz*eij[2][2]);
   energy += b2_mech[itype][itype]*(sky*skz*eij[1][2] + skx*skz*eij[0][2] + skx*sky*eij[0][1]);
 
   //return 0.5*(energy);
