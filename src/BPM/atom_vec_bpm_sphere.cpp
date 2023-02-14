@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -20,7 +20,6 @@
 #include "fix_adapt.h"
 #include "math_const.h"
 #include "modify.h"
-#include "utils.h"
 
 #include <cstring>
 
@@ -61,7 +60,7 @@ AtomVecBPMSphere::AtomVecBPMSphere(LAMMPS *_lmp) : AtomVec(_lmp)
   fields_data_vel = {"id", "v", "omega"};
 
   bond_per_atom = 0;
-  bond_negative = NULL;
+  bond_negative = nullptr;
 }
 
 /* ----------------------------------------------------------------------
@@ -149,7 +148,7 @@ void AtomVecBPMSphere::create_atom_post(int ilocal)
 
 void AtomVecBPMSphere::pack_restart_pre(int ilocal)
 {
-  // insure bond_negative vector is needed length
+  // ensure bond_negative vector is needed length
 
   if (bond_per_atom < atom->bond_per_atom) {
     delete[] bond_negative;

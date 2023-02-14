@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -109,8 +109,7 @@ void PairGauss::compute(int eflag, int vflag)
       if (eflag_global && rsq < 0.5/b[itype][jtype]) occ++;
 
       if (rsq < cutsq[itype][jtype]) {
-        fpair = -2.0*a[itype][jtype]*b[itype][jtype] *
-          exp(-b[itype][jtype]*rsq);
+        fpair = -2.0*a[itype][jtype]*b[itype][jtype] * exp(-b[itype][jtype]*rsq);
 
         f[i][0] += delx*fpair;
         f[i][1] += dely*fpair;
@@ -122,8 +121,7 @@ void PairGauss::compute(int eflag, int vflag)
         }
 
         if (eflag)
-          evdwl = -(a[itype][jtype]*exp(-b[itype][jtype]*rsq) -
-                    offset[itype][jtype]);
+          evdwl = -(a[itype][jtype]*exp(-b[itype][jtype]*rsq) - offset[itype][jtype]);
 
         if (evflag) ev_tally(i,j,nlocal,newton_pair,
                              evdwl,0.0,fpair,delx,dely,delz);

@@ -70,7 +70,7 @@ Syntax
          cutoff = distance from wall at which wall-particle interaction is cut off (distance units)
 
 * zero or more keyword/value pairs may be appended
-* keyword = *units* or *fld*
+* keyword = *units* or *fld* or *pbc*
 
   .. parsed-literal::
 
@@ -199,7 +199,7 @@ inside the colloid particle and wall.  Note that the cutoff distance Rc
 in this case is the distance from the colloid particle center to the
 wall.  The prefactor :math:`\epsilon` can be thought of as an effective
 Hamaker constant with energy units for the strength of the colloid-wall
-interaction.  More specifically, the :math:`\epsilon` pre-factor is
+interaction.  More specifically, the :math:`\epsilon` prefactor is
 :math:`4\pi^2 \rho_{wall} \rho_{colloid} \epsilon \sigma^6`, where
 :math:`\epsilon` and :math:`\sigma` are the LJ parameters for the
 constituent LJ particles. :math:`\rho_{wall}` and :math:`\rho_{colloid}`
@@ -211,7 +211,7 @@ constituent LJ particles of size :math:`\sigma` within the colloid particle
 and a 3d half-lattice of Lennard-Jones 12/6 particles of size :math:`\sigma`
 in the wall.  As mentioned in the preceding paragraph, the density of
 particles in the wall and colloid can be different, as specified by
-the :math:`\epsilon` pre-factor.
+the :math:`\epsilon` prefactor.
 
 For the *wall/harmonic* style, :math:`\epsilon` is effectively the spring
 constant K, and has units (energy/distance\^2).  The input parameter
@@ -237,7 +237,7 @@ time.  Thus it is easy to specify a time-dependent wall interaction.
 
 .. note::
 
-   For all of the styles, you must insure that r is always > 0 for
+   For all of the styles, you must ensure that r is always > 0 for
    all particles in the group, or LAMMPS will generate an error.  This
    means you cannot start your simulation with particles at the wall
    position *coord* (r = 0) or with particles on the wrong side of the
@@ -277,7 +277,7 @@ boundaries.  The default for *pbc* is *no*, which means the system
 must be non-periodic when using a wall.  But you may wish to use a
 periodic box.  E.g. to allow some particles to interact with the wall
 via the fix group-ID, and others to pass through it and wrap around a
-periodic box.  In this case you should insure that the wall if
+periodic box.  In this case you should ensure that the wall if
 sufficiently far enough away from the box boundary.  If you do not,
 then particles may interact with both the wall and with periodic
 images on the other side of the box, which is probably not what you

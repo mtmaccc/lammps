@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -463,7 +463,7 @@ fprintf(stdout, "tota%03d total %3d could use %6d inums, expected %6d inums. inu
     // loop over bins with local atoms, storing half of the neighbors
     Kokkos::parallel_for(Kokkos::RangePolicy<DeviceType>(0,ssa_phaseCt),
      LAMMPS_LAMBDA (const int workPhase) {
-      data.build_locals_onePhase(firstTry, comm->me, workPhase);
+      data.build_locals_onePhase(firstTry, workPhase);
     });
     k_ssa_itemLoc.modify<DeviceType>();
     k_ssa_itemLen.modify<DeviceType>();
@@ -490,10 +490,10 @@ fprintf(stdout, "tota%03d total %3d could use %6d inums, expected %6d inums. inu
       h_ssa_gitemLen(ssa_gphaseCt-1,h_ssa_gphaseLen(ssa_gphaseCt-1)-1) - data.neigh_list.inum;
     firstTry = false;
 
-    deep_copy(data.h_resize, data.resize);
+    Kokkos::deep_copy(data.h_resize, data.resize);
 
     if (data.h_resize()) {
-      deep_copy(data.h_new_maxneighs, data.new_maxneighs);
+      Kokkos::deep_copy(data.h_new_maxneighs, data.new_maxneighs);
       list->maxneighs = data.h_new_maxneighs() * 1.2;
       list->d_neighbors = typename ArrayTypes<DeviceType>::t_neighbors_2d("neighbors", list->d_neighbors.extent(0), list->maxneighs);
       data.neigh_list.d_neighbors = list->d_neighbors;
@@ -527,7 +527,7 @@ fprintf(stdout, "Fina%03d %6d inum %6d gnum, total used %6d, allocated %6d\n"
 
 template<class DeviceType>
 KOKKOS_INLINE_FUNCTION
-void NPairSSAKokkosExecute<DeviceType>::build_locals_onePhase(const bool firstTry, int /*me*/, int workPhase) const
+void NPairSSAKokkosExecute<DeviceType>::build_locals_onePhase(const bool firstTry, int workPhase) const
 {
   const typename ArrayTypes<DeviceType>::t_int_1d_const_um stencil = d_stencil;
   int which = 0;

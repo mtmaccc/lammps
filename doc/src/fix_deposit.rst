@@ -17,7 +17,7 @@ Syntax
 * M = insert a single atom or molecule every M steps
 * seed = random # seed (positive integer)
 * one or more keyword/value pairs may be appended to args
-* keyword = *region* or *id* or *global* or *local* or *near* or *gaussian* or *attempt* or *rate* or *vx* or *vy* or *vz* or *mol* or *rigid* or *shake* or *units*
+* keyword = *region* or *id* or *global* or *local* or *near* or *gaussian* or *attempt* or *rate* or *vx* or *vy* or *vz* or *target* or *mol* or *molfrac* or *rigid* or *shake* or *orient* or *units*
 
   .. parsed-literal::
 
@@ -96,7 +96,7 @@ default group "all" and the group specified in the fix deposit command
 
 If you are computing temperature values which include inserted
 particles, you will want to use the
-:doc:`compute_modify <compute_modify>` dynamic option, which insures the
+:doc:`compute_modify <compute_modify>` dynamic option, which ensures the
 current number of atoms is used as a normalizing factor each time the
 temperature is computed.
 
@@ -128,7 +128,7 @@ side = *in*\ .
    tests against the larger orthonormal box that bounds the tilted
    simulation box.  If the specified region includes volume outside the
    tilted box, then an insertion will likely fail, leading to a "lost
-   atoms" error.  Thus for triclinic boxes you should insure the
+   atoms" error.  Thus for triclinic boxes you should ensure the
    specified region is wholly inside the simulation box.
 
 The locations of inserted particles are taken from uniform distributed

@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -1238,7 +1238,7 @@ int FixACKS2ReaxFFKokkos<DeviceType>::bicgstab_solve()
   rnorm = sqrt(norm_sqr);
 
   if (bnorm == 0.0 ) bnorm = 1.0;
-  deep_copy(d_r_hat,d_r);
+  Kokkos::deep_copy(d_r_hat,d_r);
   omega = 1.0;
   rho = 1.0;
 
@@ -1849,7 +1849,7 @@ void FixACKS2ReaxFFKokkos<DeviceType>::operator() (TagACKS2CalculateQ, const int
 template<class DeviceType>
 void FixACKS2ReaxFFKokkos<DeviceType>::cleanup_copy()
 {
-  id = style = NULL;
+  id = style = nullptr;
 }
 
 /* ----------------------------------------------------------------------
