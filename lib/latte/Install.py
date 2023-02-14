@@ -10,7 +10,7 @@ import sys, os, subprocess, shutil, tarfile
 from argparse import ArgumentParser
 
 sys.path.append('..')
-from install_helpers import fullpath, geturl, checkmd5sum
+from install_helpers import fullpath, geturl, checkmd5sum, getfallback
 
 parser = ArgumentParser(prog='Install.py',
                         description="LAMMPS library build wrapper script")
@@ -71,7 +71,8 @@ buildflag = args.build
 pathflag = args.path is not None
 version = args.version
 suffixflag = args.machine is not None
-suffix = args.machine
+if suffixflag:
+  suffix = args.machine
 
 if pathflag:
   lattedir = args.path
@@ -85,17 +86,25 @@ if buildflag:
   url = "https://github.com/lanl/LATTE/archive/v%s.tar.gz" % version
   lattepath = fullpath(homepath)
   lattedir = os.path.join(lattepath, homedir)
+  fallback = getfallback('latte', url)
+  filename = 'LATTE.tar.gz'
 
 # download and unpack LATTE tarball
 
 if buildflag:
   print("Downloading LATTE ...")
-  geturl(url, "LATTE.tar.gz")
+  try:
+    geturl(url, filename)
+  except:
+    geturl(fallback, filename)
 
   # verify downloaded archive integrity via md5 checksum, if known.
   if version in checksums:
-    if not checkmd5sum(checksums[version], 'LATTE.tar.gz'):
-      sys.exit("Checksum for LATTE library does not match")
+    if not checkmd5sum(checksums[version], filename):
+      print("Checksum did not match. Trying fallback URL", fallback)
+      geturl(fallback, filename)
+      if not checkmd5sum(checksums[version], filename):
+        sys.exit("Checksum for LATTE library does not match for fallback, too.")
 
   print("Unpacking LATTE ...")
   if os.path.exists(lattedir):
@@ -132,8 +141,6 @@ os.symlink(os.path.join(lattedir, 'src', 'latte_c_bind.o'), 'filelink.o')
 # copy Makefile.lammps.suffix to Makefile.lammps
 
 if suffixflag or not os.path.exists("Makefile.lammps"):
-  if suffix is None:
-    suffix = 'gfortran'
   print("Creating Makefile.lammps")
   if os.path.exists("Makefile.lammps.%s" % suffix):
     shutil.copyfile("Makefile.lammps.%s" % suffix, 'Makefile.lammps')
