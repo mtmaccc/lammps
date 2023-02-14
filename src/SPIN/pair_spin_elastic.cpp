@@ -51,7 +51,7 @@ PairSpinElastic::~PairSpinElastic()
     memory->destroy(b2_mech);
     memory->destroy(cutsq); // to be deleted
     memory->destroy(emag);
-    memory->destroy(r0); // to be fixed
+//    memory->destroy(r0); // to be fixed
     memory->destroy(e0); // to be fixed
 
     
@@ -177,7 +177,6 @@ void PairSpinElastic::init_style()
 
      tagint *tag = atom->tag;
      double **x = atom->x;
-
      for (int i = 0; i < nall; i++) {
 	r0[i][0]  = x[i][0];
 	r0[i][1]  = x[i][1];
@@ -188,7 +187,20 @@ void PairSpinElastic::init_style()
 	//printf("Atom i = %d x=%f y=%f z=%f \n ",i,x[i][0],x[i][1],x[i][2]);
 	}
 
-     
+   // Initialize box constants for energy computation
+
+   //l = 2.4609; //2.851;
+   ax = sqrt( (x[1][0] - x[0][0])*(x[1][0] - x[0][0]));
+   ay = sqrt( (x[1][1] - x[0][1])*(x[1][1] - x[0][1]));
+   az = sqrt( (x[1][2] - x[0][2])*(x[1][2] - x[0][2]));
+
+   l = sqrt(ax*ax+ay*ay+az*az);	   
+   
+
+  //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
+   vol = 2*ax*2*ay*2*az;
+   printf("rij = %f ax = %f  ay=%f az=%f vol = %f \n ",l,ax,ay,az,vol);
+	
    // Store box dimensions for future smart distancing in periodic scenarios
    Lx = domain ->xprd;
    Ly = domain ->yprd;
@@ -229,13 +241,13 @@ void *PairSpinElastic::extract(const char *str, int &dim)
 
 void PairSpinElastic::compute(int eflag, int vflag)
 {
-  int i,j,ii,jj,inum,jnum,itype,jtype,icomp,nearest;
-  double evdwl,ecoul;
-  double xi[3], sio[3], rij[3], rijo[3], sjo[3];
-  double spi[3];
+  int i,j,ii,jj,inum,jnum,itype,jtype,icomp,jcomp;
+  double evdwl,ecoul,nearest;
+  double xi[3], sio[3], rij[3], rijo[3], sjo[3], spi[3]; 
   double a[3][3], c[3][3], l[3][3], eij[3][3];
   double fi[3], fmi[3];
   double local_cut2;
+  double delx,dely,delz;
   double rsq, inorm;
   int *ilist,*jlist,*numneigh,**firstneigh;
 
@@ -286,7 +298,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
     emag[i] = 0.0;
 
     //Re-define old variables from two atom method OUTSIDE j loop
-    nearest = 0;
+    nearest = 0.0;
     evdwl = 0.0;
     fi[0] = fi[1] = fi[2] = 0.0;
     fmi[0] = fmi[1] = fmi[2] = 0.0;
@@ -300,7 +312,8 @@ void PairSpinElastic::compute(int eflag, int vflag)
 	eij[cx][cy] = 0.0;
       }
     }
-    // loop on neighbors
+
+    // loop on neighbors to create strain tensor
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
       j &= NEIGHMASK;
@@ -318,7 +331,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
       rij[0] = x[j][0] - xi[0];
       rij[1] = x[j][1] - xi[1];
       rij[2] = x[j][2] - xi[2];
-	  
+      	  
       // Create rij vector from atomic positions at begining of fix
       // get tag number corresponding to j
       
@@ -417,62 +430,51 @@ void PairSpinElastic::compute(int eflag, int vflag)
         eij[cx][cy] *= 0.5;
 	 }
     }
-   
-  // compute elastic interaction 
-  // Compute strain, force, and energy here AFTER summing vectors for strain calculation
- 
-  //TEST ENERGY CALCULATION
- 
-    //printf("Current strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
-    //printf("Previous strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f  \n ",icomp ,e0[icomp][0] ,e0[icomp][1],e0[icomp][2],e0[icomp][3], e0[icomp][4], e0[icomp][5]);
+  
+  // Compute elastic interaction
+  // loop through all neighbors to define energies per atom
     
-    //compute Effective Field
-    compute_elastic(icomp,eij,fmi,spi);
+   for (jj = 0; jj < jnum; jj++) {
+     j = jlist[jj];
+     j &= NEIGHMASK;
 
-    fm[i][0] += fmi[0]; //Magnetic Force
-    fm[i][1] += fmi[1];
-    fm[i][2] += fmi[2];
-   
-    // calculate energy contributions
-    if (eflag) {
-      evdwl -= compute_elastic_energy(i,eij,spi);
-      emag[i] += evdwl;
-    } else evdwl = 0.0;
-    
-    //printf("Current Magnetoelastic Energy on atom  i = %d Energy = %.16f\n",icomp ,evdwl);
-    //if (lattice_flag) {
-       //Loop on Neighbors of atom I to create elastic mech forces
-       for (jj = 0; jj < jnum; jj++) {
-	j = jlist[jj];
-	j &= NEIGHMASK;
-   
-	int jcomp = j;
-	double oldLx, oldLy, oldLz;
-        
+     // define itype & jtype for cuttof calculation
+     jtype = type[j];
+     
+     //initialize jcomp for newtoniain forces at end
+     jcomp = j;
+
+     rijo[0] = rijo[1] = rijo[2] = 0.0; //old Rij vector (ref initial postion)
+     rij[0] = rij[1] = rij[2] = 0.0;  // current Rij vector (current i j positions)
+     sio[0] = sio[1] = sio[2] = 0.0;
+     sjo[0] = sjo[1] = sjo[2] = 0.0;
+     //create rij vector using CURRENT atomic positions
+
+     rij[0] = x[j][0] - xi[0];
+     rij[1] = x[j][1] - xi[1];
+     rij[2] = x[j][2] - xi[2];
+      	  
+     // Create rij vector from atomic positions at begining of fix
+     // get tag number corresponding to j
+      
+     if(j != tag[j] - 1) //ensures j atoms are constircted with tags defined during init /
+     	j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
+     if(i != tag[i] - 1)
+	icomp = tag[i]-1;
 	
-        rijo[0] = rijo[1] = rijo[2] = 0.0; //old Rij vector (previous timestep)
-        rij[0] = rij[1] = rij[2] = 0.0;  // current Rij vector (current i j positions)
-        sio[0] = sio[1] = sio[2] = 0.0;
-        sjo[0] = sjo[1] = sjo[2] = 0.0;
-
-	// create rij vector using CURRENT atomic positions
-	rij[0] = x[j][0] - xi[0];
-	rij[1] = x[j][1] - xi[1];
-	rij[2] = x[j][2] - xi[2];
-       
-	//if(i != tag[i] - 1)
-    	 //icomp = tag[i]-1;
-
-	if(jcomp != tag[j] - 1) //ensures j atoms are constircted with tags defined during init /
-	   jcomp = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
-	 //Get rij from reference timestep
+     // Create rij vector from atomic positions at begining of fix
+      
+     // SMART DISTANCE
+     // send old atoms through smart distance to ensure pointing rij vector is correct only works on cubes? (I think)
+     // scale sio & sjo by simuulation size
+	  
 	 if(domain->nonperiodic == 0){
 	   sio[0] = r0[icomp][0]/Lx;
  	   sio[1] = r0[icomp][1]/Ly;
 	   sio[2] = r0[icomp][2]/Lz;
-	   sjo[0] = r0[jcomp][0]/Lx;
-	   sjo[1] = r0[jcomp][1]/Ly;
-	   sjo[2] = r0[jcomp][2]/Lz;
+	   sjo[0] = r0[j][0]/Lx;
+	   sjo[1] = r0[j][1]/Ly;
+	   sjo[2] = r0[j][2]/Lz;
       
 	   // Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50 and simulation is small
 	   // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
@@ -495,47 +497,59 @@ void PairSpinElastic::compute(int eflag, int vflag)
 	   rijo[2] *= Lz;
 	  }
       	  else{
-	   rijo[0] = r0[jcomp][0] - r0[icomp][0];
-	   rijo[1] = r0[jcomp][1] - r0[icomp][1];
-	   rijo[2] = r0[jcomp][2] - r0[icomp][2];
+	   rijo[0] = r0[j][0] - r0[icomp][0];
+	   rijo[1] = r0[j][1] - r0[icomp][1];
+	   rijo[2] = r0[j][2] - r0[icomp][2];
 	  }	
+      //define rsq & localcut 2 for cutoff criteria
+     
+     rsq = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2]; 
+     local_cut2 = cut_spin_elastic[itype][jtype]*cut_spin_elastic[itype][jtype];
 
-	
-	//set up nearest neighbor check
-	rsq = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2]; 
-	local_cut2 = cut_spin_elastic[itype][jtype]*cut_spin_elastic[itype][jtype];
-	
-	
-	if (rsq <= local_cut2) {
-	 // loop over 3 directions to form magnetoelastic Newtonian force
-	//printf("Atom Current i = %d x=%f y=%f z=%f Atom Current  j = %d x=%f y=%f z=%f \n ",icomp,xi[0],xi[1],xi[2],jcomp,x[j][0], x[j][1],x[j][2]);
-	//printf("rij betweenn atom i = %d atom 'j' = %d rijx =%f rijy=%f rijz=%f rijox=%f rijoy=%f rijoz=%f \n ",icomp,jcomp,rij[0],rij[1],rij[2],rijo[0],rijo[1],rijo[2]);
-	 for(int dir=0; dir<3; dir++){
-           compute_elastic_mech(icomp,dir,nearest,rij[dir],rijo[dir], eij,fi,spi); // fix eventually
-	 }	
-	//printf("Forces between atom i = %d j=%d 'j'= %d ,xfi=%.16f, yfi =%.16f, zfi =%.16f  \n ",icomp,j, jcomp,fi[0],fi[1],fi[2]);
-    	f[i][0] += fi[0]; //mechancial force
-    	f[i][1] += fi[1];
-    	f[i][2] += fi[2];
-    	if (newton_pair || j <nlocal) {
-	  f[j][0] -= fi[0];
-	  f[j][1] -= fi[1];
-	  f[j][2] -= fi[2];
-	}
-         if (evflag) ev_tally_xyz(i,j,nlocal,newton_pair,
-             evdwl,ecoul,fi[0],fi[1],fi[2],rij[0],rij[1],rij[2]);
-	}
-       }
-   // }
+     // compute elastic interaction
+     if (rsq <= local_cut2) {
+     //printf("Pre Elastice Force on atom i = %d from atom j = %d  fx = %.16f, fy = %.16f fz=%.16f \n",i,j,f[i][0],f[i][1],f[i][2]);
+	//normalize seperation length
+    
+	compute_elastic(icomp,eij,fmi,spi,rij,nearest);     
+     
+      if (lattice_flag)
+	 compute_elastic_mech(icomp,fi,spi,rij,nearest);
 
-   
-    // update previous  strain for next timestep
-    e0[icomp][0] = eij[0][0];
-    e0[icomp][1] = eij[1][1];
-    e0[icomp][2] = eij[2][2];
-    e0[icomp][3] = eij[2][1];
-    e0[icomp][4] = eij[2][0];
-    e0[icomp][5] = eij[1][0];
+    // printf("Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
+      if (eflag){
+	 evdwl -= compute_elastic_energy(icomp,eij,spi,rij,nearest);
+//	 printf("Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
+	 emag[i] =+ evdwl;
+       } else evdwl = 0.0;
+
+     f[i][0] += fi[0];
+     f[i][1] += fi[1];
+     f[i][2] += fi[2];
+     
+     if (newton_pair || j < nlocal) {
+       f[jcomp][0] -= fi[0];
+       f[jcomp][1] -= fi[1];
+       f[jcomp][2] -= fi[2];
+     }
+     
+//	 printf("SECOND Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
+  // printf("Atom %d original rij with atom j= %d x=%f y=%f z=%f \n ",icomp,j, rijo[0], rijo[1], rijo[2] );
+  //printf("Atom %d current rij with atom j = %d  x=%f y=%f z=%f with %f neighbors \n ",icomp,j, rij[0], rij[1], rij[2], nearest);
+  // printf("Atom %d effective field fmx=%f fmy=%f fmz=%f \n ",icomp,fmi[0],fmi[1],fmi[2] );
+    //   printf("nearest between at i = %d and atom j = %d is %f for trad distance is =%f \n", icomp,j,nearest,sqrt(rijo[0]*rijo[0] + rijo[1]*rijo[1]+rijo[2]*rijo[2])); 
+     fm[i][0] += fmi[0];
+     fm[i][1] += fmi[1];
+     fm[i][2] += fmi[2];
+
+    if (evflag) ev_tally_xyz(i,j,nlocal,newton_pair,evdwl,ecoul,fi[0],fi[2],fi[2],rij[0],rij[1],rij[2]);
+
+     //printf("Post Elastice Force on atom i = %d from atom j = %d  fx = %.16f, fy = %.16f fz=%.16f \n",i,j,f[i][0],f[i][1],f[i][2]);
+    }
+   }  	
+     //printf(" Total Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
+//	printf("Current strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
+ //  printf("THIRDMagnetoelastic energy on atom i = %d is  %.16f \n",i,evdwl);
   }
   
   if (vflag_fdotr) virial_fdotr_compute();
@@ -556,14 +570,14 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
   double xi[3], rij[3], spi[3], rijo[3], sio[3], sjo[3];
   double eij[3][3], a[3][3], l[3][3], c[3][3];
  
-  int j,jnum,itype,jtype,ntypes,icomp;
+  int j,jnum,itype,jtype,ntypes,icomp,jcomp;
   int k,locflag;
   int *jlist,*numneigh,**firstneigh;
   int natoms = atom->natoms;
   int *sametag = atom->sametag;
 
 
-  double rsq, inorm;
+  double rsq, inorm, nearest;
 
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;
@@ -618,8 +632,9 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
     jnum = numneigh[ii];
     
     icomp = ii;
-    // Loop on neightbors of atom ii
-    
+    // Loop on neightbors of atom ii to build the strain matrix
+     
+    nearest = 0; 
     for (int jj = 0; jj < jnum; jj++) {
 
       j = jlist[jj];
@@ -689,7 +704,7 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
       // If failed, atom j isnt a major contributor to strain on atom i 
       
       if (rsq <= local_cut2) {
-	
+	nearest ++;
         // Create Vi & Wi Matrixes used in Transformation matrix
 	
 	// Ai = SUM j E Jnum (rijo' * rijo) & Ci = SUM j E jnum ( rijo' * rij )
@@ -730,11 +745,90 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
     for (int cx = 0; cx<3; cx++){
       for (int cy = 0; cy<3; cy++){
         eij[cx][cy] *= 0.5;
-	  }
-	}
+      }
+    }
+  
+    //loop through all atoms to calculate per atom elastic interaction
+  
+    for (int jj = 0; jj < jnum; jj++) {
+
+      j = jlist[jj];
+      j &= NEIGHMASK;
+      jtype = type[j];
+    
+      rijo[0] = rijo[1] = rijo[2] = 0.0; //old Rij vector (ref initial postion)
+      rij[0] = rij[1] = rij[2] = 0.0;  // current Rij vector (current i j positions)
+      sio[0] = sio[1] = sio[2] = 0.0;
+      sjo[0] = sjo[1] = sjo[2] = 0.0;
+      // Create rij vector using CURRENT atomic positions      
+
+      rij[0] = x[j][0] - xi[0];
+      rij[1] = x[j][1] - xi[1];
+      rij[2] = x[j][2] - xi[2];
+		
+
+      // Account for Ghost & re-indexed neighborlist atoms via utilzing j = tag[j]-1 
+      if(j != tag[j] - 1) 
+       j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1          
+      if(ii != tag[ii] - 1)
+	 icomp = tag[ii]-1;
+      // Create old rij vector from atomic positions at begining of fix
+      // Use smart distance to ensure rij pointing vector is in the correct direction
+
+      //Create scaled sio & sjo vectors by simulation size
+      if(domain->nonperiodic == 0){
+	 sio[0] = r0[icomp][0]/Lx;
+	 sio[1] = r0[icomp][1]/Ly;
+	 sio[2] = r0[icomp][2]/Lz;
+	 sjo[0] = r0[j][0]/Lx;
+	 sjo[1] = r0[j][1]/Ly;
+	 sjo[2] = r0[j][2]/Lz;
+      
+	// Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50
+	  // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
+	 rijo[0] = sjo[0] - sio[0];
+	 rijo[0] += 0.5;
+	 rijo[0] -= floor(rijo[0]);
+	 rijo[0] -= 0.5;
+	 rijo[0] *= Lx;
+ 
+	 rijo[1] = sjo[1] - sio[1];
+	 rijo[1] += 0.5;
+	 rijo[1] -= floor(rijo[1]);
+	 rijo[1] -= 0.5;
+	 rijo[1] *= Ly;
+		 
+	 rijo[2] = sjo[2] - sio[2];
+	 rijo[2] += 0.5;
+	 rijo[2] -= floor(rijo[2]);
+	 rijo[2] -= 0.5;
+	 rijo[2] *= Lz;
+	 }
+      else{
+	 rijo[0] = r0[j][0] - r0[icomp][0];
+	 rijo[1] = r0[j][1] - r0[icomp][1];
+	 rijo[2] = r0[j][2] - r0[icomp][2];
+     	 }	      
+
+     //Define rsq & localcut 2 for cutoff criteria    
+	  
+      local_cut2 = cut_spin_elastic[itype][jtype]*cut_spin_elastic[itype][jtype];
+      rsq = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2];
+      
+      // Check rsq to ensure atom j is within cutoff
+      // If failed, atom j isnt a major contributor to strain on atom i 
+     
+      //calculate elastic interaction
+      
+      if (rsq <= local_cut2) {
+	//normalize seperation length
+	     
 	//printf("Strain on atom i = %d e1 =%f e2 =%f e3 =%f e4 =%f e5 =%f e6 =%f Lx =%f Ly =%f Lz =%f r0 atom 0 x =%f  \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], Lx, Ly, Lz, r0[0][0]);
-    // Compute Elastic Interaction
-    compute_elastic(ii,eij,fmi,spi);
+        //printf("nearest between at i = %d and atom j = %d is %f for single pair distance is =%f \n", icomp,j,nearest,sqrt(rijo[0]*rijo[0] + rijo[1]*rijo[1]+rijo[2]*rijo[2])); 
+	// Compute Elastic Interaction
+    	compute_elastic(ii,eij,fmi,spi,rij,nearest);
+      }
+    }
   }
 }
 
@@ -742,7 +836,7 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
    Compute elastic energy once strain on atom i is calculated
  ---------------------------------------------------------------------- */
 
-void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], double spi[3])
+void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], double spi[3], double rij[3], double nearest)
 {
   int *type = atom->type;
   int itype;
@@ -751,13 +845,20 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
   double skx,sky,skz;
   double firstx, firsty, firstz;
   double secondx, secondy, secondz;
+  double b1bar,b2bar;
 
   //create x,y,z components of spin (si * ni) = alphi
   skx = spi[0]*n1x+spi[1]*n1y+spi[2]*n1z;
   sky = spi[0]*n2x+spi[1]*n2y+spi[2]*n2z;
   skz = spi[0]*n3x+spi[1]*n3y+spi[2]*n3z;
 
-  //calculate first part of equation 2b1*[alphi*epsiii]
+  //dimmensionalize energy constant B
+  //ONLY WORKS FOR BCC MUST UPDATE TO INCLUDE FCC ATOMS
+  b1bar =(vol*b1_mag[itype][itype])/(nearest * 2);
+  b2bar =(vol*b2_mag[itype][itype])/(nearest * 2);
+
+
+ /* //calculate first part of equation 2b1*[alphi*epsiii]
   //ASSUMES MONOTYPE SYSTEM FIX LATER
   firstx = 2.0*b1_mag[itype][itype]*(skx * eij[0][0]);
   firsty = 2.0*b1_mag[itype][itype]*(sky * eij[1][1]);
@@ -765,10 +866,22 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
 
   //Calculate 2nd part of equation b2[alphj * epsiij + alphk * epsiik
   //ASSUMES MONOTYPE SYSTEM FIX LATER
-  secondx = b2_mag[itype][itype]*(sky*eij[0][1] + skz*eij[0][2]);
-  secondy = b2_mag[itype][itype]*(skx*eij[0][1] + skz*eij[1][2]);
-  secondz = b2_mag[itype][itype]*(skx*eij[0][2] + sky*eij[1][2]);
+  secondx = 2.0*b2_mag[itype][itype]*(sky*eij[0][1] + skz*eij[0][2]);
+  secondy = 2.0*b2_mag[itype][itype]*(skx*eij[0][1] + skz*eij[1][2]);
+  secondz = 2.0*b2_mag[itype][itype]*(skx*eij[0][2] + sky*eij[1][2]);
+*/
 
+   
+  firstx = 2.0*b1bar*(skx * eij[0][0] );
+  firsty = 2.0*b1bar*(sky * eij[1][1] );
+  firstz = 2.0*b1bar*(skz * eij[2][2] );
+
+  //Calculate 2nd part of equation b2[alphj * epsiij + alphk * epsiik
+  //ASSUMES MONOTYPE SYSTEM FIX LATER
+  secondx = 2.0*b2bar*(sky*eij[0][1] + skz*eij[0][2]);
+  secondy = 2.0*b2bar*(skx*eij[0][1] + skz*eij[1][2]);
+  secondz = 2.0*b2bar*(skx*eij[0][2] + sky*eij[1][2]);
+  
   //Sum two parts together and add into forces
   //Note** assumes n1,n2, and n3 are cardinal directions. Fix later?
   fmi[0] += (firstx + secondx);
@@ -778,18 +891,27 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
 
 /* ----------------------------------------------------------------------*/ 
 
-void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double rij, double rijPrevious, double eij[3][3], double fi[3],  double spi[3])
+//void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double rij, double rijPrevious, double eij[3][3], double fi[3],  double spi[3])
+void PairSpinElastic::compute_elastic_mech(int i, double fi[3],  double spi[3], double rij[3], double nearest)
 {
   int *type = atom->type;
   int itype, jtype;
   itype = type[i];
 
   double skx,sky,skz,skx2,sky2,skz2;
-  double de1,de2,de3,de4,de5,de6;
-  double dedir1,dedir2,dedir3;
-  double dedir4,dedir5,dedir6;
-  double invnear,detotal;
+ // double de1,de2,de3,de4,de5,de6;
+  //double dedir1,dedir2,dedir3;
+  //double dedir4,dedir5,dedir6;
+  double fx1,fx2,fy1,fy2,fz1,fz2;
+  double fx3,fy3,fz3;
+  double b1bar,b2bar;
+  
+  //dimmensionalize energy constant B
+  //ONLY WORKS FOR BCC CYSTALS MUST UPDATE FOR FCC
+  b1bar =(vol*b1_mech[itype][itype])/(nearest * 2);
+  b2bar =(vol*b2_mech[itype][itype])/(nearest * 2);
 
+ //printf("b1 bar = %f \n",b1bar);
   //create x,y,z components of spin (si * ni)
   skx = spi[0]*n1x+spi[1]*n1y+spi[2]*n1z;
   sky = spi[0]*n2x+spi[1]*n2y+spi[2]*n2z;
@@ -800,81 +922,21 @@ void PairSpinElastic::compute_elastic_mech(int i, int dir, int nearest, double r
   sky2 = sky*sky;
   skz2 = skz*skz;
 
-  //create de/ddir to chainrul to convert from strains to forces
-  //check to ensure that atoms have move from refernce configuration
-  
-  //printf("rij - rijPrevious = %.16f rijPrevious - rij = %.16f floor rij - rijPrevious = %.16f floor rijprevious - rij  = %.16f \n", rij-rijPrevious, rijPrevious - rij, floor(rij-rijPrevious), floor(rijPrevious-rij) );  
-  
-  if(rij - rijPrevious < 1e-9){
-	  if(rijPrevious - rij < 1e-9){
-		  return;
-	  }
-  }
-  
-  //if(update->ntimestep = 0)  return;
-  //create initial derivative incoperating spin state
-  //currently works only in monotype system. FIX LATER
-  de1 = b1_mech[itype][itype]*(skx2);
-  //printf("de1 spin state = %.16f \n ",de1);
-  de2 = b1_mech[itype][itype]*(sky2);
-  //printf("de2 spin state = %.16f \n ",de2);
-  de3 = b1_mech[itype][itype]*(skz2);
-  //printf("de3 spin state = %.16f \n ",de3);
-  de4 = b2_mech[itype][itype]*(sky * skz);
-  //printf("de4 spin state= %.16f \n ",de4);
-  de5 = b2_mech[itype][itype]*(skx * skz);
-  //printf("de5 spin state= %.16f \n ",de5);
-  de6 = b2_mech[itype][itype]*(skx * sky);
-  //printf("de6 spin state= %.16f \n ",de6);
-
-  //under assumption atom has moved, chain rule six strains with de/dir
-  
-  //printf("rij current  = %.16f rij refrence =%.16f Current-reference=%.16f \n ",rij,rijPrevious,rij-rijPrevious);
-  //printf("Strain Precheck i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f validator =%.16f  \n ",i ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0], abs(eij[0][0]));
-  dedir1 = (eij[0][0] + e0[i][0]) /  (rij - rijPrevious);
-  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[0][0],e0[i][0],eij[0][0]+e0[i][0], (eij[0][0] + e0[i][0])  / (rij - rijPrevious));
-  dedir2 = (eij[1][1] + e0[i][1]) /  (rij - rijPrevious);
-  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[1][1],e0[i][1],eij[1][1]+e0[i][1], (eij[1][1] + e0[i][1])  / (rij - rijPrevious));
-  dedir3 = (eij[2][2] + e0[i][2]) /  (rij - rijPrevious);
-  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[2][2],e0[i][2],eij[2][2]+e0[i][2], (eij[2][2] + e0[i][2])  / (rij - rijPrevious));
-  dedir4 = (eij[2][1] + e0[i][3]) /  (rij - rijPrevious);
-  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[2][1],e0[i][3],eij[2][1]+e0[i][3], (eij[2][1] + e0[i][3])  / (rij - rijPrevious));
-  dedir5 = (eij[2][0] + e0[i][4]) /  (rij - rijPrevious);
-  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[2][0],e0[i][4],eij[2][0]+e0[i][4], (eij[2][0] + e0[i][4])  / (rij - rijPrevious));
-  dedir6 = (eij[1][0] + e0[i][5]) /  (rij - rijPrevious);
-  //printf("eij = %f eijPrevious = %f (eij+eijprevious) = %f (eij+eijprevious) / rij-rijref =%.16f  \n ",eij[1][0],e0[i][5],eij[1][0]+e0[i][5], (eij[1][0] + e0[i][5])  / (rij - rijPrevious));
-  
-  
-  //Multiple stres de's by chain ruled dedir
-  de1 *= dedir1;
-  //printf("de1 post chain rule = %.16f \n ",de1);
-  de2 *= dedir2;
-  //printf("de2 post chain rule = %.16f \n ",de2);
-  de3 *= dedir3;
-  //printf("de3 post chain rule = %.16f \n ",de3);
-  de4 *= dedir4;
-  //printf("de4 post chain rule = %.16f \n ",de4);
-  de5 *= dedir5;
-  //printf("de5 post chain rule = %.16f \n ",de5);
-  de6 *= dedir6;
-  //printf("de6 post chain rule = %.16f \n ",de6);
-  
-  //assume all atoms have equal contribution to forces
-  //Be careful, may not work if volume is not conserved
-  invnear = 1/((double)nearest);
-
-  //add forces to total force component
-  detotal = de1+de2+de3+de4+de5+de6;
-
-  //printf("normalization correction =%.16f total force = %.16f final force returned =%.16f  \n ",invnear,detotal,invnear*detotal);
-  fi[dir] -= invnear*detotal;
-  
+  fx1 = (b1bar*skx2)/ax;
+  fy1 = (b1bar*sky2)/ay;
+  fz1 = (b1bar*skz2)/az;
+ // fi[0] -= (fx1+fx2+fx3); 
+ // fi[1] -= (fy1+fy2+fy3); 
+ // fi[2] -= (fz1+fz2+fz3); 
+ fi[0] -= fx1;
+ fi[1] -= fy1;
+ fi[2] -= fz2;
 
 }
 
 /* ---------------------------------------------------------------------- */
 
-double PairSpinElastic::compute_elastic_energy(int i, double eij[3][3], double spi[3])
+double PairSpinElastic::compute_elastic_energy(int i, double eij[3][3], double spi[3], double rij[3], double nearest)
 {
   
   int *type = atom->type;
@@ -883,20 +945,34 @@ double PairSpinElastic::compute_elastic_energy(int i, double eij[3][3], double s
 
   double skx,sky,skz;
   double energy = 0.0;
+  double b1bar, b2bar;
 
   //create x,y,z components of spin (si * ni) = alphi
   skx = spi[0]*n1x+spi[1]*n1y+spi[2]*n1z;
   sky = spi[0]*n2x+spi[1]*n2y+spi[2]*n2z;
   skz = spi[0]*n3x+spi[1]*n3y+spi[2]*n3z;
 
+  //dimmensionalize energy constant B
+  //ONLY WORKS FOR BCC CYSTALS MUST UPDATE FOR FCC
+  b1bar =(vol*b1_mag[itype][itype])/(nearest * 2);
+  b2bar =(vol*b2_mag[itype][itype])/(nearest * 2);
+ // printf("b1 bar equals =%f b2 bar equals %f \n",vol*b1_mech[itype][itype]/2,vol*b2_mech[itype][itype]/2);
+  //b2bar = b2_mech[itype][itype]/(nearest * l);
   /*Calculate Energy
   //Note, if Energy looks odd, THIS is the suspect step
   //should energy var be positive or negative????
   //also only works in a monotype system FIX THIS
   */
-  energy = b1_mech[itype][itype]*(skx*skx*eij[0][0] + sky*sky*eij[1][1] + skz*skz*eij[2][2]);
-  energy += b2_mech[itype][itype]*(sky*skz*eij[1][2] + skx*skz*eij[0][2] + skx*sky*eij[0][1]);
 
+
+//printf("skx2 = %0.16f sky2 = %0.16f skz = %0.16f rijo x = %0.16f rijo y %0.16f rijoz = %0.16f e1 =%f e2 =%f e3 =%f   \n ", skx*skx,sky*sky,skz*skz,rijo[0],rijo[1],rijo[2],eij[0][0],eij[1][1],eij[2][2]);
+
+  energy = b1bar*(skx*skx*eij[0][0]+ sky*sky*eij[1][1] + skz*skz*eij[2][2]);
+  //energy -= ((b1_mech[itype][itype]*eij[0][0])/3);
+  //energy -= ((b1_mech[itype][itype]*eij[1][1])/3);
+  //energy -= ((b1_mech[itype][itype]*eij[2][2])/3);
+  //energy += 2.0*b2bar[itype][itype]*(sky*skz*eij[1][2] + skx*skz*eij[0][2] + skx*sky*eij[0][1]);
+  //printf("energy = %0.16f \n",energy);
   //return 0.5*(energy);
   return energy;
 }
