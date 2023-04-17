@@ -138,6 +138,7 @@ class FixPrecessionSpin : public Fix {
   double b1eh, b2eh;       //MagnetoElastic const. in rad.THz  
   //initalized constant length of bonds
   double l,ax,ay,az,vol; 
+  bool isPopulated;
   //double ne1x, ne1y, ne1z;
   //double ne2x, ne2y, ne2z;
   //double ne3x, ne3y, ne3z;

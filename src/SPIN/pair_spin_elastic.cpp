@@ -51,7 +51,7 @@ PairSpinElastic::~PairSpinElastic()
     memory->destroy(b2_mech);
     memory->destroy(cutsq); // to be deleted
     memory->destroy(emag);
-//    memory->destroy(r0); // to be fixed
+    memory->destroy(r0); // to be fixed
     memory->destroy(e0); // to be fixed
 
     
@@ -184,28 +184,81 @@ void PairSpinElastic::init_style()
 	e0[i][0] = e0[i][1] = e0[i][2] = 0.0;
 	e0[i][3] = e0[i][4] = e0[i][5] = 0.0; 
 
-	//printf("Atom i = %d x=%f y=%f z=%f \n ",i,x[i][0],x[i][1],x[i][2]);
+	printf("Atom i = %d x=%f y=%f z=%f \n ",i,x[i][0],x[i][1],x[i][2]);
 	}
-
+    
    // Initialize box constants for energy computation
 
-   //l = 2.4609; //2.851;
    ax = sqrt( (x[1][0] - x[0][0])*(x[1][0] - x[0][0]));
    ay = sqrt( (x[1][1] - x[0][1])*(x[1][1] - x[0][1]));
    az = sqrt( (x[1][2] - x[0][2])*(x[1][2] - x[0][2]));
 
+/*	r0[0][0] = 0.0;
+	r0[0][1] = 0.0;
+	r0[0][2] = 0.0;
+	r0[1][0] = 1.420028359;
+	r0[1][1] = 1.419999109;
+	r0[1][2] = 1.419999109;
+	r0[2][0] = 2.840056717;
+	r0[2][1] = 0.0;
+	r0[2][2] = 0.0;
+	r0[3][0] = 4.260085076;
+	r0[3][1] = 1.419999109;
+	r0[3][2] = 1.419999109;
+	r0[4][0] = 0.0;
+	r0[4][1] = 2.839998217;
+	r0[4][2] = 0.0;
+	r0[5][0] = 1.420028359;
+	r0[5][1] = 4.259997326;
+	r0[5][2] = 1.419999109;
+	r0[6][0] = 2.840056717;
+	r0[6][1] = 2.839998217;
+	r0[6][2] = 0.0;
+	r0[7][0] = 4.260085076;
+	r0[7][1] = 4.259997326;
+	r0[7][2] = 1.419999109;
+	r0[8][0] = 0.0;
+	r0[8][1] = 0.0;
+	r0[8][2] = 2.839998217;
+	r0[9][0] = 1.420028359;
+	r0[9][1] = 1.419999109;
+	r0[9][2] = 4.259997326;
+	r0[10][0] = 2.840056717;
+	r0[10][1] = 0.0;
+	r0[10][2] = 2.839998217;
+	r0[11][0] = 4.260085076;
+	r0[11][1] = 1.419999109;
+	r0[11][2] = 4.259997326;
+	r0[12][0] = 0.0;
+	r0[12][1] = 2.839998217;
+	r0[12][2] = 2.839998217;
+	r0[13][0] = 1.420028359;
+	r0[13][1] = 4.259997326;
+	r0[13][2] = 4.259997326;
+	r0[14][0] = 2.840056717;
+	r0[14][1] = 2.839998217;
+	r0[14][2] = 2.839998217;
+	r0[15][0] = 4.260085076;
+	r0[15][1] = 4.259997326;
+	r0[15][2] = 4.259997326;
+   ax = 1.420028359;
+   ay = az = 1.419999109;
+	     
+   Lx = 5.680113434;
+   Ly = Lz = 5.679996434;*/
    l = sqrt(ax*ax+ay*ay+az*az);	   
    
 
-  //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
-   vol = 2*ax*2*ay*2*az;
-   printf("rij = %f ax = %f  ay=%f az=%f vol = %f \n ",l,ax,ay,az,vol);
 	
    // Store box dimensions for future smart distancing in periodic scenarios
    Lx = domain ->xprd;
    Ly = domain ->yprd;
    Lz = domain ->zprd;
+  //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
+   vol = 2*ax*2*ay*2*az;
+   printf("rij = %f ax = %f  ay=%f az=%f vol = %f lx = %f ly = %f lz = %f \n ",l,ax,ay,az,vol,Lx,Ly,Lz);
    }
+
 }
 
 
@@ -509,6 +562,8 @@ void PairSpinElastic::compute(int eflag, int vflag)
      // compute elastic interaction
      if (rsq <= local_cut2) {
      //printf("Pre Elastice Force on atom i = %d from atom j = %d  fx = %.16f, fy = %.16f fz=%.16f \n",i,j,f[i][0],f[i][1],f[i][2]);
+     //printf("current spin orientation for atom i = %d sx = %.16f, sy = %.16f sz=%.16f \n",i,j,spi[0],spi[1],spi[2]);
+    // printf("current values for magnetoelastic force between atom i = %d from atom j = %d b = %f ax = %f ay = %f az = %f vol = %f  \n",i,j,(vol*b1_mech[itype][itype])/(8*2),ax,ay,az,vol);
 	//normalize seperation length
     
 	compute_elastic(icomp,eij,fmi,spi,rij,nearest);     
@@ -516,7 +571,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
       if (lattice_flag)
 	 compute_elastic_mech(icomp,fi,spi,rij,nearest);
 
-    // printf("Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
+     //printf("Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
       if (eflag){
 	 evdwl -= compute_elastic_energy(icomp,eij,spi,rij,nearest);
 //	 printf("Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
@@ -544,12 +599,11 @@ void PairSpinElastic::compute(int eflag, int vflag)
 
     if (evflag) ev_tally_xyz(i,j,nlocal,newton_pair,evdwl,ecoul,fi[0],fi[2],fi[2],rij[0],rij[1],rij[2]);
 
-     //printf("Post Elastice Force on atom i = %d from atom j = %d  fx = %.16f, fy = %.16f fz=%.16f \n",i,j,f[i][0],f[i][1],f[i][2]);
+    // printf("Post Elastice Force on atom i = %d from atom j = %d  fx = %.16f, fy = %.16f fz=%.16f \n",i,j,f[i][0],f[i][1],f[i][2]);
     }
    }  	
-     //printf(" Total Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
+ //    printf(" Total Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
 //	printf("Current strain on atom i = %d e1 =%.16f e2 =%.16f e3 =%.16f e4 =%.16f e5 =%.16f e6 =%.16f   \n ",icomp ,eij[0][0] ,eij[1][1],eij[2][2],eij[2][1], eij[2][0], eij[1][0]);
- //  printf("THIRDMagnetoelastic energy on atom i = %d is  %.16f \n",i,evdwl);
   }
   
   if (vflag_fdotr) virial_fdotr_compute();
@@ -843,8 +897,10 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
   itype = type[i];
   
   double skx,sky,skz;
-  double firstx, firsty, firstz;
-  double secondx, secondy, secondz;
+  double first1,first2,first3;
+  double firstx,firsty,firstz;
+  double second1,second2,second3;
+  double secondx,secondy,secondz;
   double b1bar,b2bar;
 
   //create x,y,z components of spin (si * ni) = alphi
@@ -871,16 +927,31 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
   secondz = 2.0*b2_mag[itype][itype]*(skx*eij[0][2] + sky*eij[1][2]);
 */
 
-   
-  firstx = 2.0*b1bar*(skx * eij[0][0] );
-  firsty = 2.0*b1bar*(sky * eij[1][1] );
-  firstz = 2.0*b1bar*(skz * eij[2][2] );
+
+ /*firstx = 2.0*b1bar*(skx * eij[0][0]);
+  firsty = 2.0*b1bar*(sky * eij[1][1]);
+  firstz = 2.0*b1bar*(skz * eij[2][2]);*/
+  first1 = 2.0*skx*eij[0][0];
+  first2 = 2.0*sky*eij[1][1];
+  first3 = 2.0*skz*eij[2][2];
+
+  firstx = b1bar*(n1x*first1 + n2x*first2 + n3x*first3);
+  firsty = b1bar*(n1y*first1 + n2y*first2 + n3y*first3);
+  firstz = b1bar*(n1z*first1 + n2z*first2 + n3z*first3);
 
   //Calculate 2nd part of equation b2[alphj * epsiij + alphk * epsiik
   //ASSUMES MONOTYPE SYSTEM FIX LATER
-  secondx = 2.0*b2bar*(sky*eij[0][1] + skz*eij[0][2]);
+  second1 = 2.0*(sky*eij[0][1] + skz*eij[0][2]);
+  second2 = 2.0*(skx*eij[0][1] + skz*eij[1][2]);
+  second3 = 2.0*(skx*eij[0][2] + sky*eij[1][2]);
+ 
+  secondx = b2bar*(n1x*second1 + n2x*second2 + n3x*second3);
+  secondy = b2bar*(n1y*second1 + n2y*second2 + n3y*second3);
+  secondz = b2bar*(n1z*second1 + n2z*second2 + n3z*second3);
+  
+ /* secondx = 2.0*b2bar*(sky*eij[0][1] + skz*eij[0][2]);
   secondy = 2.0*b2bar*(skx*eij[0][1] + skz*eij[1][2]);
-  secondz = 2.0*b2bar*(skx*eij[0][2] + sky*eij[1][2]);
+  secondz = 2.0*b2bar*(skx*eij[0][2] + sky*eij[1][2]);*/
   
   //Sum two parts together and add into forces
   //Note** assumes n1,n2, and n3 are cardinal directions. Fix later?
@@ -902,8 +973,7 @@ void PairSpinElastic::compute_elastic_mech(int i, double fi[3],  double spi[3], 
  // double de1,de2,de3,de4,de5,de6;
   //double dedir1,dedir2,dedir3;
   //double dedir4,dedir5,dedir6;
-  double fx1,fx2,fy1,fy2,fz1,fz2;
-  double fx3,fy3,fz3;
+  double fx,fy,fz,fx1,fx2,fy1,fy2,fz1,fz2;
   double b1bar,b2bar;
   
   //dimmensionalize energy constant B
@@ -922,15 +992,27 @@ void PairSpinElastic::compute_elastic_mech(int i, double fi[3],  double spi[3], 
   sky2 = sky*sky;
   skz2 = skz*skz;
 
-  fx1 = (b1bar*skx2)/ax;
-  fy1 = (b1bar*sky2)/ay;
-  fz1 = (b1bar*skz2)/az;
+  fx = (b1bar*skx2)/ax;
+  fy = (b1bar*sky2)/ay;
+  fz = (b1bar*skz2)/az;
+
+  
+  fx1 = (b2bar*skx*skz)/az;
+  fy1 = (b2bar*sky*skz)/az;
+  fz1 = (b2bar*sky*skz)/ay;
+
+  fx2 = (b2bar*skx*sky)/ay;
+  fy2 = (b2bar*skx*sky)/ax;
+  fz2 = (b2bar*skx*skz)/ax;
  // fi[0] -= (fx1+fx2+fx3); 
  // fi[1] -= (fy1+fy2+fy3); 
  // fi[2] -= (fz1+fz2+fz3); 
- fi[0] -= fx1;
- fi[1] -= fy1;
- fi[2] -= fz2;
+ fi[0] += 0.5*(fx + fx1 + fx2);
+ fi[1] += 0.5*(fy + fy1 + fy2);
+ fi[2] += 0.5*(fz + fz1 + fz2);
+// fi[0] += fx1;
+// fi[1] += fy1;
+// fi[2] += fz1;
 
 }
 

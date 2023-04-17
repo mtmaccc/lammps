@@ -90,6 +90,7 @@ FixPrecessionSpin::FixPrecessionSpin(LAMMPS *lmp, int narg, char **arg) :
 //  ne2x = ne2y = ne2z = 0.0;
 //  ne3x = ne3y = ne3z = 0.0;
   b1e = b2e = 0.0;
+  isPopulated = true;
   K6 = 0.0;
   n6x = n6y = n6z = 0.0;
   m6x = m6y = m6z = 0.0;
@@ -316,27 +317,25 @@ void FixPrecessionSpin::init()
 
   nlocal_max = atom->nlocal;
   memory->grow(emag,nlocal_max,"pair/spin:emag");
-
+ 
+  //get full neighbor list
+  //built whenever re-neighboring occours
+  neighbor -> add_request(this,NeighConst::REQ_FULL);
   if(elastic_flag){
 
-    //get full neighbor listi
-    //built whenever re-neighboring occours
-    neighbor->add_request(this, NeighConst::REQ_FULL);
-    //neighbor->add_request(this, NeighConst::REQ_FULL | NeighConst::REQ_OCCASIONAL);
- 	  
-    // Creates r0 vector for initial atomic positions & ghost atoms
-   if(update->ntimestep == 0){
+    // Creates r0 2D matrix for initial atomic positions & ghost atoms
+   //if(update->ntimestep == 0){
+
+    //clear old values from memory
+   if(isPopulated){ 
+
+    // get all atoms in simulation 
+
     //int nall = atom->nlocal;
     int nall = atom->natoms;
-
-  /*  //clear old values from memory
-   if(update->ntimestep != 0)
-    memory->destroy(r0);
-    */
     
     //create new r0 matrix
     memory->create(r0,nall,3,"precession/spin:r0");
-     //memory->grow(r0,nall,3,"pair/spin/elastic:r0");
 
     double **x = atom->x;
 
@@ -348,7 +347,7 @@ void FixPrecessionSpin::init()
       printf("atom i = %d x = %f y = %f z = %f \n",i,r0[i][0],r0[i][1],r0[i][2]);
       }     
      // Initialize box constants for energy computation
-
+/*
      //l = 2.4609; //2.851;
      ax = sqrt( (x[1][0] - x[0][0])*(x[1][0] - x[0][0]));
      ay = sqrt( (x[1][1] - x[0][1])*(x[1][1] - x[0][1]));
@@ -357,13 +356,67 @@ void FixPrecessionSpin::init()
      l = sqrt(ax*ax+ay*ay+az*az);	   
    
 
-  //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
-   vol = 2*ax*2*ay*2*az;
-    // Store box dimensions for future smart distancing in periodic scenarios
-     Lx = domain ->xprd;
-     Ly = domain ->yprd;
-     Lz = domain ->zprd;
+	r0[0][0] = 0.0;
+	r0[0][1] = 0.0;
+	r0[0][2] = 0.0;
+	r0[1][0] = 1.420028359;
+	r0[1][1] = 1.419999109;
+	r0[1][2]	=	1.419999109;
+	r0[2][0]	=	2.840056717;
+	r0[2][1]	=	0.0;
+	r0[2][2]	=	0.0;
+	r0[3][0]	=	4.260085076;
+	r0[3][1]	=	1.419999109;
+	r0[3][2]	=	1.419999109;
+	r0[4][0]	=	0.0;
+	r0[4][1]	=	2.839998217;
+	r0[4][2]	=	0.0;
+	r0[5][0]	=	1.420028359;
+	r0[5][1]	=	4.259997326;
+	r0[5][2]	=	1.419999109;
+	r0[6][0]	=	2.840056717;
+	r0[6][1]	=	2.839998217;
+	r0[6][2]	=	0.0;
+	r0[7][0]	=	4.260085076;
+	r0[7][1]	=	4.259997326;
+	r0[7][2]	=	1.419999109;
+	r0[8][0]	=	0.0;
+	r0[8][1]	=	0.0;
+	r0[8][2]	=	2.839998217;
+	r0[9][0]	=	1.420028359;
+	r0[9][1]	=	1.419999109;
+	r0[9][2]	=	4.259997326;
+	r0[10][0]	=	2.840056717;
+	r0[10][1]	=	0.0;
+	r0[10][2]	=	2.839998217;
+	r0[11][0]	=	4.260085076;
+	r0[11][1]	=	1.419999109;
+	r0[11][2]	=	4.259997326;
+	r0[12][0]	=	0.0;
+	r0[12][1]	=	2.839998217;
+	r0[12][2]	=	2.839998217;
+	r0[13][0]	=	1.420028359;
+	r0[13][1]	=	4.259997326;
+	r0[13][2]	=	4.259997326;
+	r0[14][0]	=	2.840056717;
+	r0[14][1]	=	2.839998217;
+	r0[14][2]	=	2.839998217;
+	r0[15][0]	=	4.260085076;
+	r0[15][1]	=	4.259997326;
+	r0[15][2]	=	4.259997326;
+     //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
+     vol = 2*ax*2*ay*2*az;
+     // Store box dimensions for future smart distancing in periodic scenarios
+     //Lx = domain->xprd;
+     //Ly = domain->yprd;
+     //Lz = domain->zprd;
+     Lx = 5.680113434;
+     Ly = Lz = 5.679996434;
+     ax = 1.420028359;
+     ay = az = 1.419999109;
+     isPopulated = false;*/
     }
+    // printf("rij = %f ax = %f  ay=%f az=%f vol = %f \n ",l,ax,ay,az,vol);
   }
 }
 
@@ -430,15 +483,15 @@ void FixPrecessionSpin::post_force(int  vflag )
   }
 
 
- /* int inum = list->inum;
+  int inum = list->inum;
   int *ilist = list->ilist;
   int *numneigh = list->numneigh;
   int **firstneigh = list->firstneigh;
-  tagint *tag = atom->tag;*/
+  tagint *tag = atom->tag;
 
-  //for (int ii = 0; ii < inum; ii++) {
-  for (int i = 0; i < nlocal; i++) {
-    //int i = ilist[ii];  
+  for (int ii = 0; ii < inum; ii++) {
+ // for (int i = 0; i < nlocal; i++) {
+    int i = ilist[ii];  
     emag[i] = 0.0;
     if (mask[i] & groupbit) {
       epreci = 0.0;
@@ -495,7 +548,6 @@ void FixPrecessionSpin::post_force(int  vflag )
     
         numneigh = list->numneigh;
         firstneigh = list->firstneigh;
-	
 	//neighbor->build_one(list,1);
 	//itype = type[i];
 	xi[0] = x[i][0];
@@ -525,7 +577,6 @@ void FixPrecessionSpin::post_force(int  vflag )
 	for (jj = 0; jj < jnum; jj++) {
 	    j = jlist[jj];
 	    j &= NEIGHMASK;
-		
 		// define itype & jtype for cuttof calculation
 		
 	    rijo[0] = rijo[1] = rijo[2] = 0.0; //old Rij vector (ref initial postion)
@@ -547,6 +598,7 @@ void FixPrecessionSpin::post_force(int  vflag )
 	    // j = sametag[j] //Tag is N number of atoms while j must be N-1
     	    if(i != tag[i] - 1)	icomp = tag[i]-1;
 	
+      //printf("atom i = %d atom j = %d xi = %f yi = %f zi = %f xj=%f yj = %f zj =%f \n",i,j,xi[0],xi[1],xi[2],x[j][0],x[j][1],x[j][2]);
           // Create rij vector from atomic positions at begining of fix
       
           // SMART DISTANCE
@@ -1119,7 +1171,7 @@ void FixPrecessionSpin::compute_elastic_mech(int i, double spi[3], double fi[3] 
 //  fi[2] -= (fz1+fz2+fz3); 
  fi[0] -= fx1;
  fi[1] -= fy1;
- fi[2] -= fz2;
+ fi[2] -= fz1;
 
 }
 /* ----------------------------------------------------------------------*/ 
