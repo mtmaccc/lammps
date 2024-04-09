@@ -36,10 +36,10 @@ class PairSpinElastic : public PairSpin {
   void compute(int, int);
   void compute_single_pair(int, double *);
   
-  void compute_elastic(int, double[][3] , double *, double *, double *, double);
+  void compute_elastic(int, double[][3] , double *, double *, double *, double, double *);
   //void compute_elastic_mech(int, int, int, double, double, double[][3], double *, double *);
-  void compute_elastic_mech(int, double *, double *, double *, double);
-  double compute_elastic_energy(int, double[][3], double *, double *, double); 
+  void compute_elastic_mech(int, double *, double *, double *, double, double *);
+  double compute_elastic_energy(int, double[][3], double *, double *, double, double *); 
 
   // Function to invert 3x3 matricies
   
