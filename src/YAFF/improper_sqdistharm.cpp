@@ -28,15 +28,16 @@
 #include "memory.h"
 #include "error.h"
 
-
 using namespace LAMMPS_NS;
-
-#define TOLERANCE 0.05
-#define SMALL     0.001
 
 /* ---------------------------------------------------------------------- */
 
-ImproperSQDistHarm::ImproperSQDistHarm(LAMMPS *lmp) : Improper(lmp) {}
+ImproperSQDistHarm::ImproperSQDistHarm(LAMMPS *lmp) : Improper(lmp)
+{
+  // the fourth atom in the quadruplet is the atom of symmetry
+
+  symmatoms[3] = 1;
+}
 
 /* ---------------------------------------------------------------------- */
 

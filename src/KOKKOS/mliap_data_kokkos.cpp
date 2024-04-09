@@ -2,7 +2,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   LAMMPS Development team: developers@lammps.org
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -75,19 +75,25 @@ void MLIAPDataKokkos<DeviceType>::generate_neighdata(class NeighList *list_in, i
 
   if (atom->nmax > nmax) {
     nmax = atom->nmax;
-    memoryKK->destroy_kokkos(k_gradforce,gradforce);
-    memoryKK->create_kokkos(k_gradforce, gradforce, nmax, size_gradforce, "mliap_data:gradforce");
+    if (gradgradflag > -1){
+      memoryKK->destroy_kokkos(k_gradforce,gradforce);
+      memoryKK->create_kokkos(k_gradforce, gradforce, nmax, size_gradforce, "mliap_data:gradforce");
+    }
     memoryKK->destroy_kokkos(k_elems,elems);
     memoryKK->create_kokkos(k_elems, elems, nmax, "mliap_data:elems");  }
 
-  // clear gradforce array
+  // clear gradforce and elems arrays
 
   int nall = atom->nlocal + atom->nghost;
+  nlocal = atom->nlocal;
   ntotal = nall;
-  auto d_gradforce = k_gradforce.template view<DeviceType>();
-  Kokkos::deep_copy(d_gradforce, 0.);
+  if (gradgradflag > -1){
+    auto d_gradforce = k_gradforce.template view<DeviceType>();
+    Kokkos::deep_copy(d_gradforce, 0.);
+  }
   auto d_elems = k_elems.template view<DeviceType>();
   Kokkos::deep_copy(d_elems, 0.);
+
   // grow arrays if necessary
 
   nlistatoms = list->inum;

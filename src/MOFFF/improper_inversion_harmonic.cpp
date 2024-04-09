@@ -31,18 +31,18 @@
 #include "memory.h"
 #include "error.h"
 
-
 using namespace LAMMPS_NS;
 using namespace MathConst;
-
-#define TOLERANCE 0.05
-#define SMALL     0.001
 
 /* ---------------------------------------------------------------------- */
 
 ImproperInversionHarmonic::ImproperInversionHarmonic(LAMMPS *lmp) : Improper(lmp)
 {
   writedata = 1;
+
+  // the first atom in the quadruplet is the atom of symmetry
+
+  symmatoms[0] = 1;
 }
 
 /* ---------------------------------------------------------------------- */

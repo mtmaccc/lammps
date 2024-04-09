@@ -25,8 +25,6 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-enum { MOLECULE, CHARGE, RMASS, IVEC, DVEC, IARRAY, DARRAY };
-
 /* ---------------------------------------------------------------------- */
 
 FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
@@ -46,9 +44,25 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
   molecule_flag = 0;
   q_flag = 0;
   rmass_flag = 0;
+  temperature_flag = 0;
+  heatflow_flag = 0;
+  nmax_old = 0;
 
   nvalue = 0;
   values_peratom = 0;
+
+  // check for ghost keyword to use as add_custom() arg
+
+  border = 0;
+  while (iarg < narg) {
+    if (strcmp(arg[iarg], "ghost") == 0) {
+      if (iarg + 2 > narg) error->all(FLERR, "Illegal fix property/atom command");
+      border = utils::logical(FLERR, arg[iarg + 1], false, lmp);
+      iarg += 2;
+    } else iarg++;
+  }
+
+  iarg = 3;
 
   while (iarg < narg) {
     if (strcmp(arg[iarg], "mol") == 0) {
@@ -81,6 +95,26 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
       values_peratom++;
       nvalue++;
       iarg++;
+    } else if (strcmp(arg[iarg], "temperature") == 0) {
+      if (atom->temperature_flag)
+        error->all(FLERR, "Fix property/atom temperature when atom_style already has temperature attribute");
+      if (temperature_flag) error->all(FLERR, "Fix property/atom cannot specify temperature twice");
+      styles[nvalue] = TEMPERATURE;
+      cols[nvalue] = 0;
+      atom->temperature_flag = temperature_flag = 1;
+      values_peratom++;
+      nvalue++;
+      iarg++;
+    } else if (strcmp(arg[iarg], "heatflow") == 0) {
+      if (atom->heatflow_flag)
+        error->all(FLERR, "Fix property/atom heatflow when atom_style already has heatflow attribute");
+      if (heatflow_flag) error->all(FLERR, "Fix property/atom cannot specify heatflow twice");
+      styles[nvalue] = HEATFLOW;
+      cols[nvalue] = 0;
+      atom->heatflow_flag = heatflow_flag = 1;
+      values_peratom++;
+      nvalue++;
+      iarg++;
 
       // custom atom vector
 
@@ -91,7 +125,7 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
       if (index[nvalue] >= 0) error->all(FLERR, "Fix property/atom vector name already exists");
       if (ReadData::is_data_section(id))
         error->all(FLERR, "Fix property/atom fix ID must not be a data file section name");
-      index[nvalue] = atom->add_custom(&arg[iarg][2], 0, 0);
+      index[nvalue] = atom->add_custom(&arg[iarg][2], 0, 0, border);
       cols[nvalue] = 0;
       values_peratom++;
       nvalue++;
@@ -104,7 +138,7 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
       if (index[nvalue] >= 0) error->all(FLERR, "Fix property/atom vector name already exists");
       if (ReadData::is_data_section(id))
         error->all(FLERR, "Fix property/atom fix ID must not be a data file section name");
-      index[nvalue] = atom->add_custom(&arg[iarg][2], 1, 0);
+      index[nvalue] = atom->add_custom(&arg[iarg][2], 1, 0, border);
       cols[nvalue] = 0;
       values_peratom++;
       nvalue++;
@@ -133,7 +167,7 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
         which = 1;
         styles[nvalue] = DARRAY;
       }
-      index[nvalue] = atom->add_custom(&arg[iarg][3], which, ncols);
+      index[nvalue] = atom->add_custom(&arg[iarg][3], which, ncols, border);
       cols[nvalue] = ncols;
       values_peratom += ncols;
       nvalue++;
@@ -147,11 +181,8 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
 
   // optional args
 
-  border = 0;
   while (iarg < narg) {
-    if (strcmp(arg[iarg], "ghost") == 0) {
-      if (iarg + 2 > narg) error->all(FLERR, "Illegal fix property/atom command");
-      border = utils::logical(FLERR, arg[iarg + 1], false, lmp);
+    if (strcmp(arg[iarg], "ghost") == 0) { // skip here, since handled earlier
       iarg += 2;
     } else if (strcmp(arg[iarg], "writedata") == 0) {
       if (iarg + 2 > narg) error->all(FLERR, "Illegal fix property/atom command");
@@ -163,28 +194,36 @@ FixPropertyAtom::FixPropertyAtom(LAMMPS *lmp, int narg, char **arg) :
 
   if (border) comm_border = values_peratom;
 
-  // warn if mol or charge keyword used without ghost yes
+  // warn if mol, charge, rmass, temperature, or heatflow keyword used without ghost yes
 
   if (border == 0) {
     int flag = 0;
     for (int i = 0; i < nvalue; i++)
-      if (styles[i] == MOLECULE || styles[i] == CHARGE || styles[i] == RMASS) flag = 1;
+      if (styles[i] == MOLECULE || styles[i] == CHARGE || styles[i] == RMASS ||
+      styles[i] == TEMPERATURE || styles[i] == HEATFLOW) flag = 1;
     if (flag && comm->me == 0)
-      error->warning(FLERR, "Fix property/atom mol or charge or rmass w/out ghost communication");
+      error->warning(FLERR, "Fix property/atom mol, charge, rmass, temperature, or heatflow w/out ghost communication");
   }
 
   // store current atom style
 
   astyle = utils::strdup(atom->atom_style);
 
-  // perform initial allocation of atom-based array
   // register with Atom class
 
-  nmax_old = 0;
-  if (!lmp->kokkos) FixPropertyAtom::grow_arrays(atom->nmax);
   atom->add_callback(Atom::GROW);
   atom->add_callback(Atom::RESTART);
   if (border) atom->add_callback(Atom::BORDER);
+}
+
+
+/* ---------------------------------------------------------------------- */
+
+void FixPropertyAtom::post_constructor()
+{
+  // perform initial allocation of atom-based array
+
+  grow_arrays(atom->nmax);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -213,6 +252,14 @@ FixPropertyAtom::~FixPropertyAtom()
       atom->rmass_flag = 0;
       memory->destroy(atom->rmass);
       atom->rmass = nullptr;
+    } else if (styles[nv] == TEMPERATURE) {
+      atom->temperature_flag = 0;
+      memory->destroy(atom->temperature);
+      atom->temperature = nullptr;
+    } else if (styles[nv] == HEATFLOW) {
+      atom->heatflow_flag = 0;
+      memory->destroy(atom->heatflow);
+      atom->heatflow = nullptr;
     } else if (styles[nv] == IVEC) {
       atom->remove_custom(index[nv], 0, cols[nv]);
     } else if (styles[nv] == DVEC) {
@@ -298,6 +345,10 @@ void FixPropertyAtom::read_data_section(char *keyword, int n, char *buf, tagint 
             atom->q[m] = values.next_double();
           } else if (styles[j] == RMASS) {
             atom->rmass[m] = values.next_double();
+          } else if (styles[j] == TEMPERATURE) {
+            atom->temperature[m] = values.next_double();
+          } else if (styles[j] == HEATFLOW) {
+            atom->heatflow[m] = values.next_double();
           } else if (styles[j] == IVEC) {
             atom->ivector[index[j]][m] = values.next_int();
           } else if (styles[j] == DVEC) {
@@ -377,6 +428,14 @@ void FixPropertyAtom::write_data_section_pack(int /*mth*/, double **buf)
       double *rmass = atom->rmass;
       for (i = 0; i < nlocal; i++) buf[i][icol] = rmass[i];
       icol++;
+    } else if (styles[nv] == TEMPERATURE) {
+      double *temperature = atom->temperature;
+      for (i = 0; i < nlocal; i++) buf[i][icol] = temperature[i];
+      icol++;
+    } else if (styles[nv] == HEATFLOW) {
+      double *heatflow = atom->heatflow;
+      for (i = 0; i < nlocal; i++) buf[i][icol] = heatflow[i];
+      icol++;
     } else if (styles[nv] == IVEC) {
       int *ivec = atom->ivector[index[nv]];
       for (i = 0; i < nlocal; i++) buf[i][icol] = ubuf(ivec[i]).d;
@@ -424,6 +483,10 @@ void FixPropertyAtom::write_data_section_keyword(int /*mth*/, FILE *fp)
         fputs(" q", fp);
       else if (styles[i] == RMASS)
         fputs(" rmass", fp);
+      else if (styles[i] == TEMPERATURE)
+        fputs(" temperature", fp);
+      else if (styles[i] == HEATFLOW)
+        fputs(" heatflow", fp);
       else if (styles[i] == IVEC)
         fprintf(fp, " i_%s", atom->ivname[index[i]]);
       else if (styles[i] == DVEC)
@@ -459,6 +522,10 @@ void FixPropertyAtom::write_data_section(int /*mth*/, FILE *fp, int n, double **
         line += fmt::format(" {}", buf[i][icol++]);
       else if (styles[nv] == RMASS)
         line += fmt::format(" {}", buf[i][icol++]);
+      else if (styles[nv] == TEMPERATURE)
+        line += fmt::format(" {}", buf[i][icol++]);
+      else if (styles[nv] == HEATFLOW)
+        line += fmt::format(" {}", buf[i][icol++]);
       else if (styles[nv] == IVEC)
         line += fmt::format(" {}", (int) ubuf(buf[i][icol++]).i);
       else if (styles[nv] == DVEC)
@@ -490,6 +557,10 @@ double FixPropertyAtom::memory_usage()
     else if (styles[m] == CHARGE)
       bytes = atom->nmax * sizeof(double);
     else if (styles[m] == RMASS)
+      bytes = atom->nmax * sizeof(double);
+    else if (styles[m] == TEMPERATURE)
+      bytes = atom->nmax * sizeof(double);
+    else if (styles[m] == HEATFLOW)
       bytes = atom->nmax * sizeof(double);
     else if (styles[m] == IVEC)
       bytes = atom->nmax * sizeof(int);
@@ -525,6 +596,14 @@ void FixPropertyAtom::grow_arrays(int nmax)
       memory->grow(atom->rmass, nmax, "atom:rmass");
       size_t nbytes = (nmax - nmax_old) * sizeof(double);
       memset(&atom->rmass[nmax_old], 0, nbytes);
+    } else if (styles[nv] == TEMPERATURE) {
+      memory->grow(atom->temperature, nmax, "atom:temperature");
+      size_t nbytes = (nmax - nmax_old) * sizeof(double);
+      memset(&atom->temperature[nmax_old], 0, nbytes);
+    } else if (styles[nv] == HEATFLOW) {
+      memory->grow(atom->heatflow, nmax, "atom:heatflow");
+      size_t nbytes = (nmax - nmax_old) * sizeof(double);
+      memset(&atom->heatflow[nmax_old], 0, nbytes);
     } else if (styles[nv] == IVEC) {
       memory->grow(atom->ivector[index[nv]], nmax, "atom:ivector");
       size_t nbytes = (nmax - nmax_old) * sizeof(int);
@@ -562,6 +641,10 @@ void FixPropertyAtom::copy_arrays(int i, int j, int /*delflag*/)
       atom->q[j] = atom->q[i];
     else if (styles[nv] == RMASS)
       atom->rmass[j] = atom->rmass[i];
+    else if (styles[nv] == TEMPERATURE)
+      atom->temperature[j] = atom->temperature[i];
+    else if (styles[nv] == HEATFLOW)
+      atom->heatflow[j] = atom->heatflow[i];
     else if (styles[nv] == IVEC)
       atom->ivector[index[nv]][j] = atom->ivector[index[nv]][i];
     else if (styles[nv] == DVEC)
@@ -603,6 +686,18 @@ int FixPropertyAtom::pack_border(int n, int *list, double *buf)
       for (i = 0; i < n; i++) {
         j = list[i];
         buf[m++] = rmass[j];
+      }
+    } else if (styles[nv] == TEMPERATURE) {
+      double *temperature = atom->temperature;
+      for (i = 0; i < n; i++) {
+        j = list[i];
+        buf[m++] = temperature[j];
+      }
+    } else if (styles[nv] == HEATFLOW) {
+      double *heatflow = atom->heatflow;
+      for (i = 0; i < n; i++) {
+        j = list[i];
+        buf[m++] = heatflow[j];
       }
     } else if (styles[nv] == IVEC) {
       int *ivector = atom->ivector[index[nv]];
@@ -658,6 +753,14 @@ int FixPropertyAtom::unpack_border(int n, int first, double *buf)
       double *rmass = atom->rmass;
       last = first + n;
       for (i = first; i < last; i++) rmass[i] = buf[m++];
+    } else if (styles[nv] == TEMPERATURE) {
+      double *temperature = atom->temperature;
+      last = first + n;
+      for (i = first; i < last; i++) temperature[i] = buf[m++];
+    } else if (styles[nv] == HEATFLOW) {
+      double *heatflow = atom->heatflow;
+      last = first + n;
+      for (i = first; i < last; i++) heatflow[i] = buf[m++];
     } else if (styles[nv] == IVEC) {
       int *ivector = atom->ivector[index[nv]];
       last = first + n;
@@ -700,6 +803,10 @@ int FixPropertyAtom::pack_exchange(int i, double *buf)
       buf[m++] = atom->q[i];
     else if (styles[nv] == RMASS)
       buf[m++] = atom->rmass[i];
+    else if (styles[nv] == TEMPERATURE)
+      buf[m++] = atom->temperature[i];
+    else if (styles[nv] == HEATFLOW)
+      buf[m++] = atom->heatflow[i];
     else if (styles[nv] == IVEC)
       buf[m++] = ubuf(atom->ivector[index[nv]][i]).d;
     else if (styles[nv] == DVEC)
@@ -732,6 +839,10 @@ int FixPropertyAtom::unpack_exchange(int nlocal, double *buf)
       atom->q[nlocal] = buf[m++];
     else if (styles[nv] == RMASS)
       atom->rmass[nlocal] = buf[m++];
+    else if (styles[nv] == TEMPERATURE)
+      atom->temperature[nlocal] = buf[m++];
+    else if (styles[nv] == HEATFLOW)
+      atom->heatflow[nlocal] = buf[m++];
     else if (styles[nv] == IVEC)
       atom->ivector[index[nv]][nlocal] = (int) ubuf(buf[m++]).i;
     else if (styles[nv] == DVEC)
@@ -768,6 +879,10 @@ int FixPropertyAtom::pack_restart(int i, double *buf)
       buf[m++] = atom->q[i];
     else if (styles[nv] == RMASS)
       buf[m++] = atom->rmass[i];
+    else if (styles[nv] == TEMPERATURE)
+      buf[m++] = atom->temperature[i];
+    else if (styles[nv] == HEATFLOW)
+      buf[m++] = atom->heatflow[i];
     else if (styles[nv] == IVEC)
       buf[m++] = ubuf(atom->ivector[index[nv]][i]).d;
     else if (styles[nv] == DVEC)
@@ -807,6 +922,10 @@ void FixPropertyAtom::unpack_restart(int nlocal, int nth)
       atom->q[nlocal] = extra[nlocal][m++];
     else if (styles[nv] == RMASS)
       atom->rmass[nlocal] = extra[nlocal][m++];
+    else if (styles[nv] == TEMPERATURE)
+      atom->temperature[nlocal] = extra[nlocal][m++];
+    else if (styles[nv] == HEATFLOW)
+      atom->heatflow[nlocal] = extra[nlocal][m++];
     else if (styles[nv] == IVEC)
       atom->ivector[index[nv]][nlocal] = (int) ubuf(extra[nlocal][m++]).i;
     else if (styles[nv] == DVEC)

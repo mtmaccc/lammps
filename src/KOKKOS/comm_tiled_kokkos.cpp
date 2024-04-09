@@ -20,14 +20,6 @@
 
 using namespace LAMMPS_NS;
 
-#define BUFFACTOR 1.5
-#define BUFFACTOR 1.5
-#define BUFMIN 1000
-#define BUFEXTRA 1000
-#define EPSILON 1.0e-6
-
-#define DELTA_PROCS 16
-
 /* ---------------------------------------------------------------------- */
 
 CommTiledKokkos::CommTiledKokkos(LAMMPS *_lmp) : CommTiled(_lmp) {}
@@ -225,14 +217,4 @@ void CommTiledKokkos::reverse_comm(Dump *dump)
 void CommTiledKokkos::forward_comm_array(int nsize, double **array)
 {
   CommTiled::forward_comm_array(nsize,array);
-}
-
-/* ----------------------------------------------------------------------
-   exchange info provided with all 6 stencil neighbors
-   NOTE: this method is currently not used
-------------------------------------------------------------------------- */
-
-int CommTiledKokkos::exchange_variable(int n, double *inbuf, double *&outbuf)
-{
-  return CommTiled::exchange_variable(n,inbuf,outbuf);
 }

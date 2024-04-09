@@ -19,7 +19,7 @@
 #include "comm.h"
 #include "domain.h"
 #include "error.h"
-#include "fix_store_peratom.h"
+#include "fix_store_atom.h"
 #include "math_const.h"
 #include "math_special.h"
 #include "my_page.h"
@@ -41,7 +41,7 @@ enum{GEAR,ASPC,LSQR};
 enum{BUILD,APPLY};
 enum{GORDON1,GORDON2};
 
-#define DEBYE 4.80321    // conversion factor from q-Angs (real units) to Debye
+static constexpr double DEBYE = 4.80321;    // conversion factor from q-Angs (real units) to Debye
 
 /* ----------------------------------------------------------------------
    induce = induced dipole moments via pre-conditioned CG solver

@@ -67,7 +67,6 @@ page gives those details.
    * :ref:`KOKKOS <PKG-KOKKOS>`
    * :ref:`KSPACE <PKG-KSPACE>`
    * :ref:`LATBOLTZ <PKG-LATBOLTZ>`
-   * :ref:`LATTE <PKG-LATTE>`
    * :ref:`LEPTON <PKG-LEPTON>`
    * :ref:`MACHDYN <PKG-MACHDYN>`
    * :ref:`MANIFOLD <PKG-MANIFOLD>`
@@ -88,8 +87,6 @@ page gives those details.
    * :ref:`MOFFF <PKG-MOFFF>`
    * :ref:`MOLECULE <PKG-MOLECULE>`
    * :ref:`MOLFILE <PKG-MOLFILE>`
-   * :ref:`MPIIO <PKG-MPIIO>`
-   * :ref:`MSCG <PKG-MSCG>`
    * :ref:`NETCDF <PKG-NETCDF>`
    * :ref:`OPENMP <PKG-OPENMP>`
    * :ref:`OPT <PKG-OPT>`
@@ -228,8 +225,9 @@ conversion of atomic information to continuum fields.
 
 **Install:**
 
-This package has :ref:`specific installation instructions <atc>` on the :doc:`Build extras <Build_extras>` page.
-The ATC package requires that also the `MANYBODY <PKG-MANYBODY>`_ package is installed.
+This package has :ref:`specific installation instructions <atc>` on the
+:doc:`Build extras <Build_extras>` page.  The ATC package requires that
+also the :ref:`MANYBODY <PKG-MANYBODY>` package is installed.
 
 **Supporting info:**
 
@@ -391,8 +389,8 @@ rigid-body integrators with improved stability.
 
 **Install:**
 
-The CG-DNA package requires that also the `MOLECULE <PKG-MOLECULE>`_ and
-`ASPHERE <PKG-ASPHERE>`_ packages are installed.
+The CG-DNA package requires that also the :ref:`MOLECULE <PKG-MOLECULE>`
+and :ref:`ASPHERE <PKG-ASPHERE>` packages are installed.
 
 **Supporting info:**
 
@@ -1114,15 +1112,15 @@ INTEL package
 
 **Contents:**
 
-Dozens of pair, fix, bond, angle, dihedral, improper, and kspace
-styles which are optimized for Intel CPUs and KNLs (Knights Landing).
-All of them have an "intel" in their style name.  The
-:doc:`INTEL package <Speed_intel>` page gives details of what hardware and
-compilers are required on your system, and how to build and use this
-package.  Its styles can be invoked at run time via the "-sf intel" or
-"-suffix intel" :doc:`command-line switches <Run_options>`.  Also see
-the :ref:`KOKKOS <PKG-KOKKOS>`, :ref:`OPT <PKG-OPT>`, and :ref:`OPENMP <PKG-OPENMP>` packages,
-which have styles optimized for CPUs and KNLs.
+Dozens of pair, fix, bond, angle, dihedral, improper, and kspace styles
+which are optimized for Intel CPUs and KNLs (Knights Landing).  All of
+them have an "intel" in their style name.  The :doc:`INTEL package
+<Speed_intel>` page gives details of what hardware and compilers are
+required on your system, and how to build and use this package.  Its
+styles can be invoked at run time via the "-sf intel" or "-suffix intel"
+:doc:`command-line switches <Run_options>`.  Also see the :ref:`KOKKOS
+<PKG-KOKKOS>`, :ref:`OPT <PKG-OPT>`, and :ref:`OPENMP <PKG-OPENMP>`
+packages, which have styles optimized for CPUs and KNLs.
 
 You need to have an Intel compiler, version 14 or higher to take full
 advantage of this package. While compilation with GNU compilers is
@@ -1249,14 +1247,15 @@ Dozens of atom, pair, bond, angle, dihedral, improper, fix, compute
 styles adapted to compile using the Kokkos library which can convert
 them to OpenMP or CUDA code so that they run efficiently on multicore
 CPUs, KNLs, or GPUs.  All the styles have a "kk" as a suffix in their
-style name.  The :doc:`KOKKOS package <Speed_kokkos>` page gives
-details of what hardware and software is required on your system, and
-how to build and use this package.  Its styles can be invoked at run
-time via the "-sf kk" or "-suffix kk" :doc:`command-line switches <Run_options>`.  Also see the :ref:`GPU <PKG-GPU>`, :ref:`OPT <PKG-OPT>`,
-:ref:`INTEL <PKG-INTEL>`, and :ref:`OPENMP <PKG-OPENMP>` packages, which
-have styles optimized for CPUs, KNLs, and GPUs.
+style name.  The :doc:`KOKKOS package <Speed_kokkos>` page gives details
+of what hardware and software is required on your system, and how to
+build and use this package.  Its styles can be invoked at run time via
+the "-sf kk" or "-suffix kk" :doc:`command-line switches <Run_options>`.
+Also see the :ref:`GPU <PKG-GPU>`, :ref:`OPT <PKG-OPT>`, :ref:`INTEL
+<PKG-INTEL>`, and :ref:`OPENMP <PKG-OPENMP>` packages, which have styles
+optimized for CPUs, KNLs, and GPUs.
 
-You must have a C++14 compatible compiler to use this package.
+You must have a C++17 compatible compiler to use this package.
 KOKKOS makes extensive use of advanced C++ features, which can
 expose compiler bugs, especially when compiling for maximum
 performance at high optimization levels. Please see the file
@@ -1352,43 +1351,6 @@ The LATBOLTZ package requires that LAMMPS is build in :ref:`MPI parallel mode <s
 * :doc:`fix lb/momentum <fix_lb_momentum>`
 * :doc:`fix lb/viscous <fix_lb_viscous>`
 * examples/PACKAGES/latboltz
-
-----------
-
-.. _PKG-LATTE:
-
-LATTE package
--------------
-
-**Contents:**
-
-A fix command which wraps the LATTE DFTB code, so that molecular
-dynamics can be run with LAMMPS using density-functional tight-binding
-quantum forces calculated by LATTE.
-
-More information on LATTE can be found at this website:
-`https://github.com/lanl/LATTE <latte-home_>`_.  A brief technical
-description is given with the :doc:`fix latte <fix_latte>` command.
-
-.. _latte-home: https://github.com/lanl/LATTE
-
-**Authors:** Christian Negre (LANL) and Steve Plimpton (Sandia).  LATTE
-itself is developed at Los Alamos National Laboratory by Marc
-Cawkwell, Anders Niklasson, and Christian Negre.
-
-**Install:**
-
-This package has :ref:`specific installation instructions <latte>` on
-the :doc:`Build extras <Build_extras>` page.
-
-**Supporting info:**
-
-* src/LATTE: filenames -> commands
-* src/LATTE/README
-* lib/latte/README
-* :doc:`fix latte <fix_latte>`
-* examples/latte
-* `LAMMPS-LATTE tutorial <https://github.com/lanl/LATTE/wiki/Using-LATTE-through-LAMMPS>`_
 
 ----------
 
@@ -2070,70 +2032,6 @@ This package has :ref:`specific installation instructions <molfile>` on the :doc
 
 ----------
 
-.. _PKG-MPIIO:
-
-MPIIO package
--------------
-
-**Contents:**
-
-Support for parallel output/input of dump and restart files via the
-MPIIO library.  It adds :doc:`dump styles <dump>` with a "mpiio" in
-their style name.  Restart files with an ".mpiio" suffix are also
-written and read in parallel.
-
-.. warning::
-
-   The MPIIO package is currently unmaintained and has become
-   unreliable. Use with caution.
-
-
-**Install:**
-
-The MPIIO package requires that LAMMPS is build in :ref:`MPI parallel mode <serial>`.
-
-**Supporting info:**
-
-* src/MPIIO: filenames -> commands
-* :doc:`dump <dump>`
-* :doc:`restart <restart>`
-* :doc:`write_restart <write_restart>`
-* :doc:`read_restart <read_restart>`
-
-----------
-
-.. _PKG-MSCG:
-
-MSCG package
-------------
-
-**Contents:**
-
-A :doc:`fix mscg <fix_mscg>` command which can parameterize a
-Multi-Scale Coarse-Graining (MSCG) model using the open-source `MS-CG library <mscg-home_>`_.
-
-.. _mscg-home: https://github.com/uchicago-voth/MSCG-release
-
-To use this package you must have the MS-CG library available on your
-system.
-
-**Authors:** The fix was written by Lauren Abbott (Sandia).  The MS-CG
-library was developed by Jacob Wagner in Greg Voth's group at the
-University of Chicago.
-
-**Install:**
-
-This package has :ref:`specific installation instructions <mscg>` on the :doc:`Build extras <Build_extras>` page.
-
-**Supporting info:**
-
-* src/MSCG: filenames -> commands
-* src/MSCG/README
-* lib/mscg/README
-* examples/mscg
-
-----------
-
 .. _PKG-NETCDF:
 
 NETCDF package
@@ -2328,7 +2226,7 @@ and third order tensor from finite differences.
 
 **Install:**
 
-The PHONON package requires that also the `KSPACE <PKG-KSPACE>`_
+The fix phonon command also requires that the :ref:`KSPACE <PKG-KSPACE>`
 package is installed.
 
 
@@ -2929,11 +2827,9 @@ VORONOI package
 **Contents:**
 
 A compute command which calculates the Voronoi tesselation of a
-collection of atoms by wrapping the `Voro++ library <voro-home_>`_.  This
-can be used to calculate the local volume or each atoms or its near
-neighbors.
-
-.. _voro-home: https://math.lbl.gov/voro++
+collection of atoms by wrapping the `Voro++ library
+<https://math.lbl.gov/voro++/>`_.  This can be used to calculate the
+local volume or each atoms or its near neighbors.
 
 To use this package you must have the Voro++ library available on your
 system.

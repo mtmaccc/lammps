@@ -20,10 +20,12 @@ Available topics in mostly chronological order are:
 - `Use ev_init() to initialize variables derived from eflag and vflag`_
 - `Use utils::numeric() functions instead of force->numeric()`_
 - `Use utils::open_potential() function to open potential files`_
+- `Use symbolic Atom and AtomVec constants instead of numerical values`_
 - `Simplify customized error messages`_
 - `Use of "override" instead of "virtual"`_
 - `Simplified and more compact neighbor list requests`_
 - `Split of fix STORE into fix STORE/GLOBAL and fix STORE/PERATOM`_
+- `Rename of fix STORE/PERATOM to fix STORE/ATOM and change of arguments`_
 - `Use Output::get_dump_by_id() instead of Output::find_dump()`_
 - `Refactored grid communication using Grid3d/Grid2d classes instead of GridComm`_
 
@@ -194,6 +196,71 @@ New:
 .. code-block:: c++
 
    fp = utils::open_potential(filename, lmp);
+
+Use symbolic Atom and AtomVec constants instead of numerical values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionchanged:: 18Sep2020
+
+Properties in LAMMPS that were represented by integer values (0, 1,
+2, 3) to indicate settings in the ``Atom`` and ``AtomVec`` classes (or
+classes derived from it) (and its derived classes) have been converted
+to use scoped enumerators instead.
+
+.. list-table::
+   :header-rows: 1
+   :widths: auto
+
+   * - Symbolic Constant
+     - Value
+     - Symbolic Constant
+     - Value
+   * - Atom::GROW
+     - 0
+     - Atom::MAP_NONE
+     - 0
+   * - Atom::RESTART
+     - 1
+     - Atom::MAP_ARRAY
+     - 1
+   * - Atom::BORDER
+     - 2
+     - Atom::MAP_HASH
+     - 2
+   * - Atom::ATOMIC
+     - 0
+     - Atom::MAP_YES
+     - 3
+   * - Atom::MOLECULAR
+     - 1
+     - AtomVec::PER_ATOM
+     - 0
+   * - Atom::TEMPLATE
+     - 2
+     - AtomVec::PER_TYPE
+     - 1
+
+Old:
+
+.. code-block:: c++
+
+   molecular = 0;
+   mass_type = 1;
+   if (atom->molecular == 2)
+   if (atom->map_style == 2)
+   atom->add_callback(0);
+   atom->delete_callback(id,1);
+
+New:
+
+.. code-block:: c++
+
+   molecular = Atom::ATOMIC;
+   mass_type = AtomVec::PER_TYPE;
+   if (atom->molecular == Atom::TEMPLATE)
+   if (atom->map_style == Atom::MAP_HASH)
+   atom->add_callback(Atom::GROW);
+   atom->delete_callback(id,Atom::RESTART);
 
 Simplify customized error messages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -384,6 +451,34 @@ New:
    FixStoreGlobal *fix = dynamic_cast<FixStoreGlobal *>(modify->get_fix_by_id(id_fix));
 
 This change is **required** or else the code will not compile.
+
+Rename of fix STORE/PERATOM to fix STORE/ATOM and change of arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionchanged:: 28Mar2023
+
+The available functionality of the internal fix to store per-atom
+properties was expanded to enable storing data with ghost atoms and to
+support binary restart files.  With those changes, the fix was renamed
+to fix STORE/ATOM and the number and order of (required) arguments has
+changed.
+
+Old syntax: ``ID group-ID STORE/PERATOM rflag n1 n2 [n3]``
+
+- *rflag* = 0/1, *no*/*yes* store per-atom values in restart file
+- :math:`n1 = 1, n2 = 1, \mathrm{no}\;n3 \to` per-atom vector, single value per atom
+- :math:`n1 = 1, n2 > 1, \mathrm{no}\;n3 \to` per-atom array, *n2* values per atom
+- :math:`n1 = 1, n2 > 0, n3 > 0 \to` per-atom tensor, *n2* x *n3* values per atom
+
+New syntax:  ``ID group-ID STORE/ATOM n1 n2 gflag rflag``
+
+- :math:`n1 = 1, n2 = 0 \to` per-atom vector, single value per atom
+- :math:`n1 > 1, n2 = 0 \to` per-atom array, *n1* values per atom
+- :math:`n1 > 0, n2 > 0 \to` per-atom tensor, *n1* x *n2* values per atom
+- *gflag* = 0/1, *no*/*yes* communicate per-atom values with ghost atoms
+- *rflag* = 0/1, *no*/*yes* store per-atom values in restart file
+
+Since this is an internal fix, there is no user visible change.
 
 Use Output::get_dump_by_id() instead of Output::find_dump()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -10,7 +10,7 @@ fix npt/uef command
 Syntax
 """"""
 
-.. parsed-literal::
+.. code-block:: LAMMPS
 
    fix ID group-ID style_name erate edot_x edot_y temp Tstart Tstop Tdamp keyword value ...
 
@@ -23,7 +23,7 @@ Syntax
   .. parsed-literal::
 
      keyword = *erate* or *ext* or *strain* or *temp* or *iso* or *x* or *y* or *z* or *tchain* or *pchain* or *tloop* or *ploop* or *mtk*
-       *erate* values = e_x e_y = engineering strain rates (required)
+       *erate* values = e_x e_y = true strain rates (required)
        *ext* value = *x* or *y* or *z* or *xy* or *yz* or *xz* = external dimensions
          sets the external dimensions used to calculate the scalar pressure
        *strain* values = e_x e_y = initial strain
@@ -62,7 +62,7 @@ performed using the :doc:`fix deform <fix_deform>`, :doc:`fix nvt/sllod
 <fix_nvt_sllod>`, and :doc:`compute temp/deform <compute_temp_deform>`
 commands.
 
-The applied flow field is set by the *eps* keyword. The values
+The applied flow field is set by the *erate* keyword. The values
 *edot_x* and *edot_y* correspond to the strain rates in the xx and yy
 directions.  It is implicitly assumed that the flow field is
 traceless, and therefore the strain rate in the zz direction is eqal
@@ -218,10 +218,11 @@ use :doc:`change_box <change_box>` before invoking the fix.
 Related commands
 """"""""""""""""
 
-:doc:`fix nvt <fix_nh>`, :doc:`fix npt <fix_nh>`, `fix nvt/sllod
-:doc:<fix_nvt_sllod>`, `compute temp/uef <compute_temp_uef>`,
-:doc::doc:`compute pressure/uef <compute_pressure_uef>`, `dump cfg/uef
-:doc:<dump_cfg_uef>`
+:doc:`fix nvt <fix_nh>`, :doc:`fix npt <fix_nh>`,
+:doc:`fix nvt/sllod <fix_nvt_sllod>`,
+:doc:`compute temp/uef <compute_temp_uef>`,
+:doc:`compute pressure/uef <compute_pressure_uef>`,
+:doc:`dump cfg/uef <dump_cfg_uef>`
 
 Default
 """""""

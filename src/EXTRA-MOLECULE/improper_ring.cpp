@@ -54,12 +54,16 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace MathSpecial;
 
-#define TOLERANCE 0.05
-#define SMALL     0.001
+static constexpr double SMALL =     0.001;
 
 /* ---------------------------------------------------------------------- */
 
-ImproperRing::ImproperRing(LAMMPS *lmp) : Improper(lmp) {}
+ImproperRing::ImproperRing(LAMMPS *lmp) : Improper(lmp)
+{
+  // the second atom in the quadruplet is the atom of symmetry
+
+  symmatoms[1] = 1;
+}
 
 /* ---------------------------------------------------------------------- */
 

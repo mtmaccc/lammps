@@ -55,9 +55,9 @@
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
-using namespace MathExtra;
-using namespace MathConst;
-using namespace MathSpecial;
+using MathConst::MY_PI;
+using MathConst::MY_PIS;
+using MathSpecial::square;
 
 //#define _POLARIZE_DEBUG
 
@@ -378,26 +378,12 @@ void FixPolarizeFunctional::update_induced_charges()
   // assign charges to the particles in the group
 
   double *q_scaled = atom->q_scaled;
-  double *q = atom->q;
-  double *epsilon = atom->epsilon;
   int nlocal = atom->nlocal;
-  double tmp = 0;
 
   for (int i = 0; i < nlocal; i++) {
     if (induced_charge_idx[i] < 0) continue;
     int idx = induced_charge_idx[i];
-    q[i] = -induced_charges[idx] / (4 * MY_PI);
-    q_scaled[i] = q[i] / epsilon[i];
-    tmp += q_scaled[i];
-  }
-
-  double sum = 0;
-  MPI_Allreduce(&tmp, &sum, 1, MPI_DOUBLE, MPI_SUM, world);
-  double qboundave = sum/(double)num_induced_charges;
-
-  for (int i = 0; i < nlocal; i++) {
-    if (induced_charge_idx[i] < 0) continue;
-    q_scaled[i] -=  qboundave;
+    q_scaled[i] = -induced_charges[idx] / (4 * MY_PI);
   }
 
   // revert to scaled charges to calculate forces
@@ -502,11 +488,11 @@ int FixPolarizeFunctional::modify_param(int narg, char **arg)
       int set_charge = 0;
       double ediff = utils::numeric(FLERR, arg[iarg + 1], false, lmp);
       double emean = utils::numeric(FLERR, arg[iarg + 2], false, lmp);
-      if (strcmp(arg[iarg + 3], "nullptr") != 0)
+      if (strcmp(arg[iarg + 3], "NULL") != 0)
         epsiloni = utils::numeric(FLERR, arg[iarg + 3], false, lmp);
-      if (strcmp(arg[iarg + 4], "nullptr") != 0)
+      if (strcmp(arg[iarg + 4], "NULL") != 0)
         areai = utils::numeric(FLERR, arg[iarg + 4], false, lmp);
-      if (strcmp(arg[iarg + 5], "nullptr") != 0) {
+      if (strcmp(arg[iarg + 5], "NULL") != 0) {
         q_unscaled = utils::numeric(FLERR, arg[iarg + 5], false, lmp);
         set_charge = 1;
       }

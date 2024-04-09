@@ -27,11 +27,13 @@
 ------------------------------------------------------------------------- */
 
 #include "fix_mvv_tdpd.h"
-#include <cstring>
+
 #include "atom.h"
+#include "error.h"
 #include "force.h"
 #include "update.h"
-#include "error.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
@@ -67,6 +69,18 @@ int FixMvvTDPD::setmask()
 
 void FixMvvTDPD::init()
 {
+  if (!atom->tdpd_flag) error->all(FLERR,"Fix mvv/tdpd requires atom style tdpd");
+
+  if (!force->pair_match("^tdpd",0)) {
+    if (force->pair_match("^hybrid",0)) {
+      if (!force->pair_match("^tdpd",0,1)) {
+        error->all(FLERR, "Must use pair style tdpd with fix mvv/tdpd");
+      }
+    } else {
+      error->all(FLERR, "Must use pair style tdpd with fix mvv/tdpd");
+    }
+  }
+
   dtv = update->dt;
   dtf = 0.5 * update->dt * force->ftm2v;
 }

@@ -66,9 +66,9 @@ static const char cite_fix_charge_regulation[] =
 enum{CONSTANT,EQUAL}; // parsing input variables
 
 // large energy value used to signal overlap
-#define MAXENERGYSIGNAL 1.0e100
-#define MAXENERGYTEST 1.0e50
-#define SMALL 0.0000001
+static constexpr double MAXENERGYSIGNAL = 1.0e100;
+static constexpr double MAXENERGYTEST = 1.0e50;
+static constexpr double SMALL = 0.0000001;
 #define NA_RHO0 0.602214 // Avogadro's constant times reference concentration  (N_A * mol / liter)  [nm^-3]
 
 /* ---------------------------------------------------------------------- */
@@ -79,6 +79,8 @@ FixChargeRegulation::FixChargeRegulation(LAMMPS *lmp, int narg, char **arg) :
   c_pe(nullptr), random_equal(nullptr), random_unequal(nullptr),
   idftemp(nullptr)
 {
+  if (narg < 5) utils::missing_cmd_args(FLERR, "fix charge/regulation", error);
+
   if (lmp->citeme) lmp->citeme->add(cite_fix_charge_regulation);
 
   // Region restrictions not yet implemented ..
@@ -151,6 +153,21 @@ FixChargeRegulation::~FixChargeRegulation() {
   delete[] pHstr;
   delete[] idftemp;
 
+  // delete exclusion group created in init()
+  // unset neighbor exclusion settings made in init()
+  // not necessary if group and neighbor classes already destroyed
+  //   when LAMMPS exits
+
+  if (exclusion_group_bit && group) {
+    auto group_id = std::string("FixChargeRegulation:gcmc_exclusion_group:") + id;
+    try {
+      group->assign(group_id + " delete");
+    } catch (std::exception &e) {
+      if (comm->me == 0)
+        fprintf(stderr, "Error deleting group %s: %s\n", group_id.c_str(), e.what());
+    }
+  }
+
   if (group) {
     int igroupall = group->find("all");
     neighbor->exclusion_group_group_delete(exclusion_group, igroupall);
@@ -211,12 +228,11 @@ void FixChargeRegulation::init() {
 
     // create unique group name for atoms to be excluded
 
-    auto group_id = fmt::format("FixChargeRegulation:exclusion_group:{}",id);
+    auto group_id = std::string("FixChargeRegulation:exclusion_group:") + id;
     group->assign(group_id + " subtract all all");
     exclusion_group = group->find(group_id);
     if (exclusion_group == -1)
-      error->all(FLERR,"Could not find fix charge/regulation exclusion "
-                 "group ID");
+      error->all(FLERR,"Could not find fix charge/regulation exclusion group ID");
     exclusion_group_bit = group->bitmask[exclusion_group];
 
     // neighbor list exclusion setup
@@ -240,8 +256,7 @@ void FixChargeRegulation::init() {
     MPI_Allreduce(&flag, &flagall, 1, MPI_INT, MPI_SUM, world);
 
     if (flagall)
-      error->all(FLERR, "Cannot use fix charge/regulation on atoms "
-                 "in atom_modify first group");
+      error->all(FLERR, "Cannot use fix charge/regulation on atoms in atom_modify first group");
   }
 
   // construct group bitmask for all new atoms
@@ -1284,16 +1299,13 @@ void FixChargeRegulation::restart(char *buf)
 /* ---------------------------------------------------------------------- */
 
 void FixChargeRegulation::setThermoTemperaturePointer() {
-  int ifix = -1;
-  ifix = modify->find_fix(idftemp);
-  if (ifix == -1) {
-    error->all(FLERR, "fix charge/regulation regulation could not find "
-               "a temperature fix id provided by tempfixid\n");
-  }
-  Fix *temperature_fix = modify->fix[ifix];
-  int dim;
-  target_temperature_tcp = (double *) temperature_fix->extract("t_target", dim);
+  Fix *ifix = modify->get_fix_by_id(idftemp);
+  if (!ifix)
+    error->all(FLERR, "fix charge/regulation could not find thermostat fix id {}", idftemp);
 
+  int dim;
+  target_temperature_tcp = (double *) ifix->extract("t_target", dim);
+  if (!target_temperature_tcp) error->all(FLERR, "Fix id {} does not control temperature", idftemp);
 }
 
 /* ---------------------------------------------------------------------- */

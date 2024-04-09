@@ -55,7 +55,7 @@ void dpd_tstat_gpu_update_coeff(int ntypes, double **host_a0, double **host_gamm
                                 double **host_sigma, double **host_cut);
 double dpd_tstat_gpu_bytes();
 
-#define EPSILON 1.0e-10
+static constexpr double EPSILON = 1.0e-10;
 
 //#define _USE_UNIFORM_SARU_LCG
 //#define _USE_UNIFORM_SARU_TEA8
@@ -272,6 +272,8 @@ void PairDPDTstatGPU::compute(int eflag, int vflag)
   }
   if (!success) error->one(FLERR, "Insufficient memory on accelerator");
 
+  if (atom->molecular != Atom::ATOMIC && neighbor->ago == 0)
+    neighbor->build_topology();
   if (host_start < inum) {
     cpu_time = platform::walltime();
     cpu_compute(host_start, inum, eflag, vflag, ilist, numneigh, firstneigh);

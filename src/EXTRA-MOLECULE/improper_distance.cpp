@@ -27,15 +27,16 @@
 #include "memory.h"
 #include "error.h"
 
-
 using namespace LAMMPS_NS;
-
-#define TOLERANCE 0.05
-#define SMALL     0.001
 
 /* ---------------------------------------------------------------------- */
 
-ImproperDistance::ImproperDistance(LAMMPS *lmp) : Improper(lmp) {}
+ImproperDistance::ImproperDistance(LAMMPS *lmp) : Improper(lmp)
+{
+  // the first atom in the quadruplet is the atom of symmetry
+
+  symmatoms[0] = 1;
+}
 
 /* ---------------------------------------------------------------------- */
 

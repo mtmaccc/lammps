@@ -269,11 +269,10 @@ MLIAPBuildUnifiedKokkos_t<DeviceType> LAMMPS_NS::build_unified(char *unified_fna
 
 void LAMMPS_NS::update_pair_energy(MLIAPDataKokkosDevice *data, double *eij)
 {
-  double e_total = 0.0;
   auto d_eatoms = data->eatoms;
   auto d_pair_i= data->pair_i;
-  const auto nlistatoms = data->nlistatoms;
-  Kokkos::parallel_for(nlistatoms, KOKKOS_LAMBDA(int ii){
+  const auto nlocal = data->nlocal;
+  Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(int ii){
     d_eatoms[ii] = 0;
   });
 
@@ -282,7 +281,7 @@ void LAMMPS_NS::update_pair_energy(MLIAPDataKokkosDevice *data, double *eij)
     double e = 0.5 * eij[ii];
 
     // must not count any contribution where i is not a local atom
-    if (i < nlistatoms) {
+    if (i < nlocal) {
       Kokkos::atomic_add(&d_eatoms[i], e);
       local_sum += e;
     }
@@ -295,14 +294,19 @@ void LAMMPS_NS::update_pair_energy(MLIAPDataKokkosDevice *data, double *eij)
 
 void LAMMPS_NS::update_pair_forces(MLIAPDataKokkosDevice *data, double *fij)
 {
-  const auto nlistatoms = data->nlistatoms;
+  const auto nlocal = data->nlocal;
   auto *f = data->f;
   auto pair_i = data->pair_i;
   auto j_atoms = data->jatoms;
   auto vflag = data->vflag;
   auto rij = data->rij;
-  int vflag_either=data->pairmliap->vflag_either, vflag_global=data->pairmliap->vflag_global, vflag_atom=data->pairmliap->vflag_atom;
+  int vflag_global=data->pairmliap->vflag_global, vflag_atom=data->pairmliap->vflag_atom;
+  if (vflag_atom) {
+    data->pairmliap->k_vatom.template modify<LMPHostType>();
+    data->pairmliap->k_vatom.template sync<LMPDeviceType>();
+  }
   auto d_vatom = data->pairmliap->k_vatom.template view<LMPDeviceType>();
+
   Kokkos::View<double[6], LMPDeviceType> virial("virial");
 
   Kokkos::parallel_for(data->npairs,KOKKOS_LAMBDA (int ii) {
@@ -310,9 +314,8 @@ void LAMMPS_NS::update_pair_forces(MLIAPDataKokkosDevice *data, double *fij)
     int ii3 = ii * 3;
     int i = pair_i[ii];
     int j = j_atoms[ii];
-
     // must not count any contribution where i is not a local atom
-    if (i < nlistatoms) {
+    if (i < nlocal) {
       Kokkos::atomic_add(&f[i*3+0], fij[ii3+0]);
       Kokkos::atomic_add(&f[i*3+1], fij[ii3+1]);
       Kokkos::atomic_add(&f[i*3+2], fij[ii3+2]);
@@ -335,7 +338,7 @@ void LAMMPS_NS::update_pair_forces(MLIAPDataKokkosDevice *data, double *fij)
           Kokkos::atomic_add(&virial[4], v[4]);
           Kokkos::atomic_add(&virial[5], v[5]);
         }
-        if (vflag_atom) {
+        if (vflag_atom ) {
           Kokkos::atomic_add(&d_vatom(i,0), 0.5*v[0]);
           Kokkos::atomic_add(&d_vatom(i,1), 0.5*v[1]);
           Kokkos::atomic_add(&d_vatom(i,2), 0.5*v[2]);
@@ -368,20 +371,35 @@ void LAMMPS_NS::update_pair_forces(MLIAPDataKokkosDevice *data, double *fij)
   }
 }
 
+/* ----------------------------------------------------------------------
+   set energy for i indexed atoms
+   ---------------------------------------------------------------------- */
+
+void LAMMPS_NS::update_atom_energy(MLIAPDataKokkosDevice *data, double *ei)
+{
+  auto d_eatoms = data->eatoms;
+  const auto nlocal = data->nlocal;
+
+  Kokkos::parallel_reduce(nlocal, KOKKOS_LAMBDA(int i, double &local_sum){
+    double e = ei[i];
+    // must not count any contribution where i is not a local atom
+    if (i < nlocal) {
+      d_eatoms[i] = e;
+      local_sum += e;
+    }
+  },*data->energy);
+}
+
 namespace LAMMPS_NS {
 template class MLIAPDummyModelKokkos<LMPDeviceType>;
 template class MLIAPDummyDescriptorKokkos<LMPDeviceType>;
 template MLIAPBuildUnifiedKokkos_t<LMPDeviceType> LAMMPS_NS::build_unified(char *unified_fname, MLIAPDataKokkos<LMPDeviceType> *data, LAMMPS *lmp,
                                              char *coefffilename);
-//template void LAMMPS_NS::update_pair_energy(MLIAPDataKokkos<LMPDeviceType> *data, double *eij);
-//template void LAMMPS_NS::update_pair_forces(MLIAPDataKokkos<LMPDeviceType> *data, double *fij);
 #ifdef LMP_KOKKOS_GPU
 template class MLIAPDummyModelKokkos<LMPHostType>;
 template class MLIAPDummyDescriptorKokkos<LMPHostType>;
 template MLIAPBuildUnifiedKokkos_t<LMPHostType> LAMMPS_NS::build_unified(char *unified_fname, MLIAPDataKokkos<LMPHostType> *data, LAMMPS *lmp,
                                              char *coefffilename);
-//template void LAMMPS_NS::update_pair_energy(MLIAPDataKokkos<LMPHostType> *data, double *eij);
-//template void LAMMPS_NS::update_pair_forces(MLIAPDataKokkos<LMPHostType> *data, double *fij);
 #endif
 }
 #endif

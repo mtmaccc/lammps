@@ -44,6 +44,7 @@ class MLIAPData : protected Pointers {
   int ndescriptors;        // number of descriptors
   int nparams;             // number of model parameters per element
   int nelements;           // number of elements
+  int gradgradflag;        // 1 for graddesc, 0 for gamma, -1 for pair style
 
   // data structures for grad-grad list (gamma)
 
@@ -59,6 +60,7 @@ class MLIAPData : protected Pointers {
 
   int ntotal;                    // total number of owned and ghost atoms on this proc
   int nlistatoms;                // current number of atoms in local atom lists
+  int nlocal;
   int nlistatoms_max;            // allocated size of descriptor array
   int natomneigh;                // current number of atoms and ghosts in atom neighbor arrays
   int natomneigh_max;            // allocated size of atom neighbor arrays
@@ -84,7 +86,6 @@ class MLIAPData : protected Pointers {
   int nmax;
   class NeighList *list;    // LAMMPS neighbor list
   int *map;                 // map LAMMPS types to [0,nelements)
-  int gradgradflag;         // 1 for graddesc, 0 for gamma
 };
 
 }    // namespace LAMMPS_NS

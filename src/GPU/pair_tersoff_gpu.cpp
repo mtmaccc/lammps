@@ -54,9 +54,6 @@ void tersoff_gpu_compute(const int ago, const int nlocal, const int nall, const 
                          int &host_start, const double cpu_time, bool &success);
 double tersoff_gpu_bytes();
 
-#define MAXLINE 1024
-#define DELTA 4
-
 /* ---------------------------------------------------------------------- */
 
 PairTersoffGPU::PairTersoffGPU(LAMMPS *lmp) : PairTersoff(lmp), gpu_mode(GPU_FORCE)
@@ -118,6 +115,8 @@ void PairTersoffGPU::compute(int eflag, int vflag)
                         cpu_time, success);
   }
   if (!success) error->one(FLERR, "Insufficient memory on accelerator");
+  if (atom->molecular != Atom::ATOMIC && neighbor->ago == 0)
+    neighbor->build_topology();
 }
 
 /* ---------------------------------------------------------------------- */
