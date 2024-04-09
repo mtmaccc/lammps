@@ -58,6 +58,7 @@ FixPour::FixPour(LAMMPS *lmp, int narg, char **arg) :
 
   if (lmp->kokkos) error->all(FLERR, "Cannot yet use fix pour with the KOKKOS package");
 
+  scalar_flag = 1;
   time_depend = 1;
 
   if (!atom->radius_flag || !atom->rmass_flag)
@@ -270,6 +271,7 @@ FixPour::~FixPour()
   delete[] molfrac;
   delete[] idrigid;
   delete[] idshake;
+  delete[] idregion;
   delete[] radius_poly;
   delete[] frac_poly;
   memory->destroy(coords);
@@ -677,7 +679,7 @@ void FixPour::pre_exchange()
   int ninserted_atoms = nnear - nprevious;
   int ninserted_mols = ninserted_atoms / natom;
   ninserted += ninserted_mols;
-  if (ninserted_mols < nnew && me == 0) error->warning(FLERR, "Less insertions than requested");
+  if (ninserted_mols < nnew && me == 0) error->warning(FLERR, "Fewer insertions than requested");
 
   // reset global natoms,nbonds,etc
   // increment maxtag_all and maxmol_all if necessary
@@ -1027,6 +1029,15 @@ void FixPour::options(int narg, char **arg)
     } else
       error->all(FLERR, "Illegal fix pour command");
   }
+}
+
+/* ----------------------------------------------------------------------
+   output number of successful insertions
+------------------------------------------------------------------------- */
+
+double FixPour::compute_scalar()
+{
+  return ninserted;
 }
 
 /* ---------------------------------------------------------------------- */

@@ -42,6 +42,7 @@ OPT.
    * :doc:`gaussian <bond_gaussian>`
    * :doc:`gromos (o) <bond_gromos>`
    * :doc:`harmonic (iko) <bond_harmonic>`
+   * :doc:`harmonic/restrain <bond_harmonic_restrain>`
    * :doc:`harmonic/shift (o) <bond_harmonic_shift>`
    * :doc:`harmonic/shift/cut (o) <bond_harmonic_shift_cut>`
    * :doc:`lepton (o) <bond_lepton>`
@@ -123,7 +124,7 @@ OPT.
    *
    *
    * :doc:`charmm (iko) <dihedral_charmm>`
-   * :doc:`charmmfsw <dihedral_charmm>`
+   * :doc:`charmmfsw (k) <dihedral_charmm>`
    * :doc:`class2 (ko) <dihedral_class2>`
    * :doc:`cosine/shift/exp (o) <dihedral_cosine_shift_exp>`
    * :doc:`fourier (io) <dihedral_fourier>`

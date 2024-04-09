@@ -32,7 +32,7 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
-#define EPSILON 1.0e-20
+static constexpr double EPSILON = 1.0e-20;
 
 // External functions from cuda library for atom decomposition
 
@@ -117,6 +117,8 @@ void PairBornCoulWolfCSGPU::compute(int eflag, int vflag)
   }
   if (!success) error->one(FLERR, "Insufficient memory on accelerator");
 
+  if (atom->molecular != Atom::ATOMIC && neighbor->ago == 0)
+    neighbor->build_topology();
   if (host_start < inum) {
     cpu_time = platform::walltime();
     cpu_compute(host_start, inum, eflag, vflag, ilist, numneigh, firstneigh);

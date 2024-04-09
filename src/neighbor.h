@@ -155,6 +155,11 @@ class Neighbor : protected Pointers {
   void exclusion_group_group_delete(int, int);    // rm a group-group exclusion
   int exclude_setting();                          // return exclude value to accelerator pkg
 
+  // Option to call build_topology (e.g. from gpu styles instead for overlapped computation)
+
+  int overlap_topo;    // 0 for default/old non-overlap mode
+  void set_overlap_topo(int);
+
   // find a neighbor list based on requestor
   NeighList *find_list(void *, const int id = 0) const;
   // find a neighbor request based on requestor
@@ -181,8 +186,7 @@ class Neighbor : protected Pointers {
 
   int must_check;       // 1 if must check other classes to reneigh
   int restart_check;    // 1 if restart enabled, 0 if no
-  int fix_check;        // # of fixes that induce reneigh
-  int *fixchecklist;    // which fixes to check
+  std::vector<Fix *>fixchecklist;    // which fixes to check
 
   double triggersq;    // trigger = build when atom moves this dist
 
@@ -297,8 +301,9 @@ namespace NeighConst {
     NS_ORTHO = 1 << 6,
     NS_TRI = 1 << 7,
     NS_GHOST = 1 << 8,
-    NS_SSA = 1 << 9,
-    NS_MULTI_OLD = 1 << 10
+    NS_INTEL = 1 << 9,
+    NS_SSA = 1 << 10,
+    NS_MULTI_OLD = 1 << 11
   };
 
   enum {

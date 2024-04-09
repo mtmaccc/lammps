@@ -23,6 +23,7 @@
 #include "comm.h"
 #include "domain.h"
 #include "error.h"
+#include "ewald_const.h"
 #include "force.h"
 #include "gpu_extra.h"
 #include "kspace.h"
@@ -33,15 +34,8 @@
 
 #include <cmath>
 
-#define EWALD_F 1.12837917
-#define EWALD_P 0.3275911
-#define A1 0.254829592
-#define A2 -0.284496736
-#define A3 1.421413741
-#define A4 -1.453152027
-#define A5 1.061405429
-
 using namespace LAMMPS_NS;
+using namespace EwaldConst;
 
 // External functions from cuda library for atom decomposition
 
@@ -131,6 +125,8 @@ void PairLJCutTIP4PLongGPU::compute(int eflag, int vflag)
                              success, atom->q, atom->nlocal, domain->boxlo, domain->prd);
   }
   if (!success) error->one(FLERR, "Insufficient memory on accelerator");
+  if (atom->molecular != Atom::ATOMIC && neighbor->ago == 0)
+    neighbor->build_topology();
 }
 
 /* ----------------------------------------------------------------------

@@ -30,12 +30,18 @@
 
 using namespace LAMMPS_NS;
 
-#define TOLERANCE 0.05
-#define SMALL     0.001
+static constexpr double TOLERANCE = 0.05;
+static constexpr double SMALL =     0.001;
 
 /* ---------------------------------------------------------------------- */
 
-ImproperFourier::ImproperFourier(LAMMPS *lmp) : Improper(lmp) {}
+ImproperFourier::ImproperFourier(LAMMPS *lmp) : Improper(lmp)
+{
+  // the first and fourth atoms in the quadruplet are the atoms of symmetry
+
+  symmatoms[0] = 1;
+  symmatoms[3] = 2;
+}
 
 /* ---------------------------------------------------------------------- */
 

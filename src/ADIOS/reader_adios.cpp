@@ -30,12 +30,7 @@
 
 using namespace LAMMPS_NS;
 
-// also in read_dump.cpp
-
-enum { ID, TYPE, X, Y, Z, VX, VY, VZ, Q, IX, IY, IZ, FX, FY, FZ };
-enum { UNSET, NOSCALE_NOWRAP, NOSCALE_WRAP, SCALE_NOWRAP, SCALE_WRAP };
-
-#define SMALL 1.0e-6
+static constexpr double SMALL = 1.0e-6;
 
 namespace LAMMPS_NS {
 class ReadADIOSInternal {
@@ -83,9 +78,9 @@ ReaderADIOS::ReaderADIOS(LAMMPS *lmp) : Reader(lmp)
   internal = new ReadADIOSInternal();
   try {
 #if defined(MPI_STUBS)
-    internal->ad = new adios2::ADIOS("adios2_config.xml", adios2::DebugON);
+    internal->ad = new adios2::ADIOS("adios2_config.xml");
 #else
-    internal->ad = new adios2::ADIOS("adios2_config.xml", world, adios2::DebugON);
+    internal->ad = new adios2::ADIOS("adios2_config.xml", world);
 #endif
   } catch (std::ios_base::failure &e) {
     error->one(FLERR, "ADIOS initialization failed with error: {}", e.what());

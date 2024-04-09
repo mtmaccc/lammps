@@ -63,9 +63,9 @@ DumpAtomADIOS::DumpAtomADIOS(LAMMPS *lmp, int narg, char **arg) : DumpAtom(lmp, 
   internal = new DumpAtomADIOSInternal();
   try {
 #if defined(MPI_STUBS)
-    internal->ad = new adios2::ADIOS("adios2_config.xml", adios2::DebugON);
+    internal->ad = new adios2::ADIOS("adios2_config.xml");
 #else
-    internal->ad = new adios2::ADIOS("adios2_config.xml", world, adios2::DebugON);
+    internal->ad = new adios2::ADIOS("adios2_config.xml", world);
 #endif
   } catch (std::ios_base::failure &e) {
     error->all(FLERR, "ADIOS initialization failed with error: {}", e.what());
@@ -281,8 +281,8 @@ void DumpAtomADIOS::init_style()
       auto nstreams = std::to_string(num_aggregators);
       internal->io.SetParameters({{"substreams", nstreams}});
       if (me == 0)
-        utils::logmesg(lmp, "ADIOS method for {} is n-to-m (aggregation with {} writers)\n", filename,
-                       nstreams);
+        utils::logmesg(lmp, "ADIOS method for {} is n-to-m (aggregation with {} writers)\n",
+                       filename, nstreams);
     }
 
     internal->io.DefineVariable<uint64_t>("ntimestep");
@@ -325,6 +325,6 @@ void DumpAtomADIOS::init_style()
     // it will be correctly defined at the moment of write
     size_t UnknownSizeYet = 1;
     internal->varAtoms = internal->io.DefineVariable<double>(
-      "atoms", {UnknownSizeYet, nColumns}, {UnknownSizeYet, 0}, {UnknownSizeYet, nColumns});
+        "atoms", {UnknownSizeYet, nColumns}, {UnknownSizeYet, 0}, {UnknownSizeYet, nColumns});
   }
 }

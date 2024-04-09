@@ -108,6 +108,8 @@ void PairYukawaColloidGPU::compute(int eflag, int vflag)
   }
   if (!success) error->one(FLERR, "Insufficient memory on accelerator");
 
+  if (atom->molecular != Atom::ATOMIC && neighbor->ago == 0)
+    neighbor->build_topology();
   if (host_start < inum) {
     cpu_time = platform::walltime();
     cpu_compute(host_start, inum, eflag, vflag, ilist, numneigh, firstneigh);
@@ -121,7 +123,7 @@ void PairYukawaColloidGPU::compute(int eflag, int vflag)
 
 void PairYukawaColloidGPU::init_style()
 {
-  if (!atom->sphere_flag) error->all(FLERR, "Pair yukawa/colloid/gpu requires atom style sphere");
+  if (!atom->radius_flag) error->all(FLERR, "Pair style yukawa/colloid/gpu requires atom attribute radius");
 
   // Repeat cutsq calculation because done after call to init_style
   double maxcut = -1.0;

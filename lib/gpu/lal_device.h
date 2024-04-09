@@ -346,6 +346,8 @@ class Device {
   int _block_pair, _block_bio_pair, _block_ellipse;
   int _pppm_block, _block_nbor_build, _block_cell_2d, _block_cell_id;
   int _max_shared_types, _max_bio_shared_types, _pppm_max_spline;
+  int _nbor_prefetch;
+  int _use_old_nbor_build;
 
   UCL_Program *dev_program;
   UCL_Kernel k_zero, k_info;

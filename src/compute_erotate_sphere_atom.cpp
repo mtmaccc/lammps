@@ -1,4 +1,3 @@
-// clang-format off
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
@@ -24,7 +23,7 @@
 
 using namespace LAMMPS_NS;
 
-#define INERTIA 0.4          // moment of inertia prefactor for sphere
+static constexpr double INERTIA = 0.4;          // moment of inertia prefactor for sphere
 
 /* ---------------------------------------------------------------------- */
 
@@ -41,8 +40,10 @@ ComputeErotateSphereAtom(LAMMPS *lmp, int narg, char **arg) :
 
   // error check
 
-  if (!atom->sphere_flag)
-    error->all(FLERR,"Compute erotate/sphere/atom requires atom style sphere");
+  if (!atom->omega_flag)
+    error->all(FLERR,"Compute erotate/sphere/atom requires atom attribute omega");
+  if (!atom->radius_flag)
+    error->all(FLERR,"Compute erotate/sphere/atom requires atom attribute radius");
 
   nmax = 0;
 }
@@ -58,11 +59,8 @@ ComputeErotateSphereAtom::~ComputeErotateSphereAtom()
 
 void ComputeErotateSphereAtom::init()
 {
-  int count = 0;
-  for (int i = 0; i < modify->ncompute; i++)
-    if (strcmp(modify->compute[i]->style,"erotate/sphere/atom") == 0) count++;
-  if (count > 1 && comm->me == 0)
-    error->warning(FLERR,"More than one compute erotate/sphere/atom");
+  if (modify->get_compute_by_style(style).size() > 1)
+    if (comm->me == 0) error->warning(FLERR, "More than one compute {}", style);
 
   pfactor = 0.5 * force->mvv2e * INERTIA;
 }

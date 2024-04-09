@@ -26,8 +26,7 @@
 #include "tokenizer.h"
 
 using namespace LAMMPS_NS;
-#define BUFLEN 4096
-#define DELTA 16384
+static constexpr int BUFLEN = 4096;
 
 // read file until next section "name" or any next section if name == ""
 
@@ -81,6 +80,8 @@ void Ndx2Group::command(int narg, char **arg)
   if (narg < 1) error->all(FLERR,"Illegal ndx2group command");
   if (atom->tag_enable == 0)
     error->all(FLERR,"Must have atom IDs for ndx2group command");
+  if (atom->map_style == Atom::MAP_NONE)
+    error->all(FLERR,"Must have an atom map for ndx2group command");
   if (comm->me == 0) {
     fp = fopen(arg[0], "r");
     if (fp == nullptr)
@@ -153,11 +154,12 @@ void Ndx2Group::command(int narg, char **arg)
           MPI_Bcast((void *)name.c_str(),len,MPI_CHAR,0,world);
 
           // read tags for atoms in group and broadcast
-          std::vector<tagint> tags = read_section(fp,name);
+          std::vector<tagint> tags = read_section(fp,next);
           num = tags.size();
           MPI_Bcast(&num,1,MPI_LMP_BIGINT,0,world);
           MPI_Bcast((void *)tags.data(),num,MPI_LMP_TAGINT,0,world);
           create(name,tags);
+          name = next;
         }
       } else {
         MPI_Bcast(&len,1,MPI_INT,0,world);

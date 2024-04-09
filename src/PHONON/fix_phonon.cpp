@@ -45,9 +45,9 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-#define MAXLINE 512
+static constexpr int MAXLINE = 512;
 
-enum{FORWARD=-1,BACKWARD=1};
+enum{ FORWARD=-1, BACKWARD=1 };
 
 static const char cite_fix_phonon[] =
   "fix phonon command: doi:10.1016/j.cpc.2011.04.019\n\n"
@@ -126,6 +126,8 @@ FixPhonon::FixPhonon(LAMMPS *lmp,  int narg, char **arg) : Fix(lmp, narg, arg)
   surf2tag.clear();
 
   // get the mapping between lattice indices and atom IDs
+
+  atom->map_init();
   readmap();
   delete[] mapfile;
   if (nucell == 1) nasr = MIN(1,nasr);
@@ -553,7 +555,7 @@ void FixPhonon::readmap()
   }
 
   // read from map file for others
-  char line[MAXLINE];
+  char line[MAXLINE] = {'\0'};
   FILE *fp = fopen(mapfile, "r");
   if (fp == nullptr)
     error->all(FLERR,"Cannot open input map file {}: {}", mapfile, utils::getsyserror());
