@@ -184,8 +184,6 @@ void PairSpinElastic::init_style()
 	r0[i][2]  = x[i][2];
 	e0[i][0] = e0[i][1] = e0[i][2] = 0.0;
 	e0[i][3] = e0[i][4] = e0[i][5] = 0.0; 
-
-//	printf("Atom i = %d x=%f y=%f z=%f \n ",i,x[i][0],x[i][1],x[i][2]);
 	}
     
    // Initialize box constants for energy computation

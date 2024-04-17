@@ -32,7 +32,6 @@ class FixPrecessionSpin : public Fix {
   ~FixPrecessionSpin() override;
   int setmask() override;
   void init() override;
-  void init_list(int, class NeighList *) override;
   void setup(int) override;
   void min_setup(int) override;
   void post_force(int) override;
@@ -40,7 +39,7 @@ class FixPrecessionSpin : public Fix {
   void min_post_force(int) override;
   double compute_scalar() override;
 
-  int zeeman_flag, stt_flag, aniso_flag, cubic_flag, hexaniso_flag, elastic_flag;
+  int zeeman_flag, stt_flag, aniso_flag, cubic_flag, hexaniso_flag;
   void compute_single_precession(int, double *, double *);
 
   // zeeman calculations
@@ -68,17 +67,6 @@ class FixPrecessionSpin : public Fix {
   void compute_hexaniso(double *, double *);
   double compute_hexaniso_energy(double *);
 
-  // Magnetoelastic Calculations
- 
-  void compute_elastic( double[][3] , double *, double *);
-  void compute_elastic_mech(int, double *, double *);
-  //void compute_elastic_mech( double *, double *);
-  double compute_elastic_energy( double[][3], double *); 
-
-  // Function to invert 3x3 matricies
- 
-  void solve3x3exactly(double a[][3], double c[][3], double l[][3]);
-  
   // storing magnetic energies
 
   int nlocal_max;    // max nlocal (for list size)
@@ -132,24 +120,6 @@ class FixPrecessionSpin : public Fix {
   double n6x, n6y, n6z;    // main axis
   double m6x, m6y, m6z;    // secondary (perpendicular) axis
   double l6x, l6y, l6z;    // =(m x n)
-
-  // Magnetoelastic calculations
-  double b1e, b2e; 	   //MagnetoElastic const. in eV
-  double b1eh, b2eh;       //MagnetoElastic const. in rad.THz  
-  //initalized constant length of bonds
-  double l,ax,ay,az,vol; 
-  bool isPopulated;
-  //double ne1x, ne1y, ne1z;
-  //double ne2x, ne2y, ne2z;
-  //double ne3x, ne3y, ne3z;
-
-  class NeighList *list;
-  // store r0 starting atom positions used in strain (Must be in Ground State)
-
-  double **r0;
-  
-  // Box dimensions for smart distancing method of r0
-  double Lx,Ly,Lz;
 
   void set_magneticprecession();
 };
