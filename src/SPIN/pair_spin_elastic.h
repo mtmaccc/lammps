@@ -74,10 +74,6 @@ class PairSpinElastic : public PairSpin {
   double n2x, n2y, n2z;             // x, y, z, unit vector to define "2" direction (y)
   double n3x, n3y, n3z;             // x, y, z, unit vector to define "3" direction (z)
   
-  // Previous strain value for direct magnetoelastic effect
-  
-  double **e0;
-
   void allocate();
 };
 

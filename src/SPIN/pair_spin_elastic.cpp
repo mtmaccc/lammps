@@ -52,7 +52,6 @@ PairSpinElastic::~PairSpinElastic()
     memory->destroy(cutsq); // to be deleted
     memory->destroy(emag);
     memory->destroy(r0); // to be fixed
-    memory->destroy(e0); // to be fixed
 
     
   }
@@ -167,95 +166,39 @@ void PairSpinElastic::init_style()
 {
   PairSpin::init_style();
 
-  // Creates r0 vector for initial atomic positions & ghost atoms
+  // Creates r0 vector for initial atomic positions & ghost atoms 
    if(update->ntimestep == 0){
     //if(true){
     //int nall = atom->nlocal;
     int nall = atom->natoms;
 
      memory->grow(r0,nall,3,"pair/spin/elastic:r0");
-     memory->grow(e0,nall,6,"pair/spin/elastic:e0");
 
      tagint *tag = atom->tag;
      double **x = atom->x;
      for (int i = 0; i < nall; i++) {
-	r0[i][0]  = x[i][0];
-	r0[i][1]  = x[i][1];
-	r0[i][2]  = x[i][2];
-	e0[i][0] = e0[i][1] = e0[i][2] = 0.0;
-	e0[i][3] = e0[i][4] = e0[i][5] = 0.0; 
-	}
+    	  r0[i][0]  = x[i][0];
+	      r0[i][1]  = x[i][1];
+	      r0[i][2]  = x[i][2];
+	      }
     
-   // Initialize box constants for energy computation
+     // Initialize box constants for energy computation
 
-   ax = sqrt( (x[1][0] - x[0][0])*(x[1][0] - x[0][0]));
-   ay = sqrt( (x[1][1] - x[0][1])*(x[1][1] - x[0][1]));
-   az = sqrt( (x[1][2] - x[0][2])*(x[1][2] - x[0][2]));
+      ax = sqrt( (x[1][0] - x[0][0])*(x[1][0] - x[0][0]));
+      ay = sqrt( (x[1][1] - x[0][1])*(x[1][1] - x[0][1]));
+      az = sqrt( (x[1][2] - x[0][2])*(x[1][2] - x[0][2]));
 
-/*	r0[0][0] = 0.0;
-	r0[0][1] = 0.0;
-	r0[0][2] = 0.0;
-	r0[1][0] = 1.420028359;
-	r0[1][1] = 1.419999109;
-	r0[1][2] = 1.419999109;
-	r0[2][0] = 2.840056717;
-	r0[2][1] = 0.0;
-	r0[2][2] = 0.0;
-	r0[3][0] = 4.260085076;
-	r0[3][1] = 1.419999109;
-	r0[3][2] = 1.419999109;
-	r0[4][0] = 0.0;
-	r0[4][1] = 2.839998217;
-	r0[4][2] = 0.0;
-	r0[5][0] = 1.420028359;
-	r0[5][1] = 4.259997326;
-	r0[5][2] = 1.419999109;
-	r0[6][0] = 2.840056717;
-	r0[6][1] = 2.839998217;
-	r0[6][2] = 0.0;
-	r0[7][0] = 4.260085076;
-	r0[7][1] = 4.259997326;
-	r0[7][2] = 1.419999109;
-	r0[8][0] = 0.0;
-	r0[8][1] = 0.0;
-	r0[8][2] = 2.839998217;
-	r0[9][0] = 1.420028359;
-	r0[9][1] = 1.419999109;
-	r0[9][2] = 4.259997326;
-	r0[10][0] = 2.840056717;
-	r0[10][1] = 0.0;
-	r0[10][2] = 2.839998217;
-	r0[11][0] = 4.260085076;
-	r0[11][1] = 1.419999109;
-	r0[11][2] = 4.259997326;
-	r0[12][0] = 0.0;
-	r0[12][1] = 2.839998217;
-	r0[12][2] = 2.839998217;
-	r0[13][0] = 1.420028359;
-	r0[13][1] = 4.259997326;
-	r0[13][2] = 4.259997326;
-	r0[14][0] = 2.840056717;
-	r0[14][1] = 2.839998217;
-	r0[14][2] = 2.839998217;
-	r0[15][0] = 4.260085076;
-	r0[15][1] = 4.259997326;
-	r0[15][2] = 4.259997326;
-   ax = 1.420028359;
-   ay = az = 1.419999109;
-	     
-   Lx = 5.680113434;
-   Ly = Lz = 5.679996434;*/
-   l = sqrt(ax*ax+ay*ay+az*az);	   
+      l = sqrt(ax*ax+ay*ay+az*az);	   
    
 
 	
-   // Store box dimensions for future smart distancing in periodic scenarios
-   Lx = domain ->xprd;
-   Ly = domain ->yprd;
-   Lz = domain ->zprd;
-  //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
-   vol = 2*ax*2*ay*2*az;
-   printf("rij = %f ax = %f  ay=%f az=%f vol = %f lx = %f ly = %f lz = %f \n ",l,ax,ay,az,vol,Lx,Ly,Lz);
+      // Store box dimensions for future smart distancing in periodic scenarios
+      Lx = domain ->xprd;
+      Ly = domain ->yprd;
+      Lz = domain ->zprd;
+      //THIS ONLY WORKS FOR BCC, MUST FIND AN ALTERNATE METHOD FOR FCC 
+      vol = 2*ax*2*ay*2*az;
+      printf("rij = %f ax = %f  ay=%f az=%f vol = %f lx = %f ly = %f lz = %f \n ",l,ax,ay,az,vol,Lx,Ly,Lz);
    }
 
 }
@@ -391,7 +334,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
       if(j != tag[j] - 1) //ensures j atoms are constircted with tags defined during init /
       	j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
       if(i != tag[i] - 1)
-	icomp = tag[i]-1;
+	    icomp = tag[i]-1;
 	
       // Create rij vector from atomic positions at begining of fix
       
@@ -399,7 +342,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
       // send old atoms through smart distance to ensure pointing rij vector is correct only works on cubes? (I think)
       // scale sio & sjo by simuulation size
 	  
-	 if(domain->nonperiodic == 0){
+	  if(domain->nonperiodic == 0){
 	   sio[0] = r0[icomp][0]/Lx;
  	   sio[1] = r0[icomp][1]/Ly;
 	   sio[2] = r0[icomp][2]/Lz;
@@ -427,7 +370,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
 	   rijo[2] -= 0.5;
 	   rijo[2] *= Lz;
 	  }
-      	  else{
+    else{
 	   rijo[0] = r0[j][0] - r0[icomp][0];
 	   rijo[1] = r0[j][1] - r0[icomp][1];
 	   rijo[2] = r0[j][2] - r0[icomp][2];
@@ -441,18 +384,18 @@ void PairSpinElastic::compute(int eflag, int vflag)
       // If failed, atom j isnt a major contributor to strain on atom i  
       if (rsq <= local_cut2) {
         
-	//Ensure that Newtonian atom force is divided evenly
-	nearest++;
+	      //Ensure that Newtonian atom force is divided evenly
+	    nearest++;
 		
-    // printf("#%f neighbor of atom id = %d is atom %d x = %f y = %f z = %f rij away \n", nearest,i,j,rij[0],rij[1],rij[2] );
-    // printf("atom %d is located at x = %f y = %f z = %f and atom %d is located at x = %f y = %f z = %f \n",i,xi[0],xi[1],xi[2],j,x[j][0],x[j][1],x[j][2]);
-// Create Vi & Wi Matrixes to create Transformatoin Matrix J
+      // printf("#%f neighbor of atom id = %d is atom %d x = %f y = %f z = %f rij away \n", nearest,i,j,rij[0],rij[1],rij[2] );
+      // printf("atom %d is located at x = %f y = %f z = %f and atom %d is located at x = %f y = %f z = %f \n",i,xi[0],xi[1],xi[2],j,x[j][0],x[j][1],x[j][2]);
+      // Create Vi & Wi Matrixes to create Transformatoin Matrix J
 
         // Vi = SUM j E Jnum ( rijo' * rijo )
     	for (int ax = 0; ax<3; ax++){
           for (int ay = 0; ay<3; ay++){
-		a[ax][ay] += (rijo[ax] * rijo[ay]);
-		c[ax][ay] += (rijo[ax] * rij[ay]);
+		        a[ax][ay] += (rijo[ax] * rijo[ay]);
+		        c[ax][ay] += (rijo[ax] * rij[ay]);
           }
         }
       }
@@ -473,10 +416,10 @@ void PairSpinElastic::compute(int eflag, int vflag)
     	for (int k=0; k<3; k++){
           for (int n=0; n<3; n++){
             for (int m=0; m<3; m++){
-		eij[k][n] += (l[k][m] * l[n][m]);
-	    }
+		           eij[k][n] += (l[k][m] * l[n][m]);
+	          } 
           }
-    	}  
+    	  }  
     	//Subtract identity matrix from diagonal elements; then divide entire matrix by half
     	eij[0][0] -= 1;
     	eij[1][1] -= 1;
@@ -486,7 +429,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
     	for (int cx = 0; cx<3; cx++){
       	  for (int cy = 0; cy<3; cy++){
               eij[cx][cy] *= 0.5;
-	  }
+	          }
         }
     }
   
@@ -519,7 +462,7 @@ void PairSpinElastic::compute(int eflag, int vflag)
      if(j != tag[j] - 1) //ensures j atoms are constircted with tags defined during init /
      	j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1
      if(i != tag[i] - 1)
-	icomp = tag[i]-1;
+	    icomp = tag[i]-1;
 	
      // Create rij vector from atomic positions at begining of fix
       
@@ -572,33 +515,36 @@ void PairSpinElastic::compute(int eflag, int vflag)
     // printf("current values for magnetoelastic force between atom i = %d from atom j = %d b = %f ax = %f ay = %f az = %f vol = %f  \n",i,j,(vol*b1_mech[itype][itype])/(8*2),ax,ay,az,vol);
 	//normalize seperation length
     
-	compute_elastic(icomp,eij,fmi,spi,rij,nearest,rijo);     
+	    compute_elastic(icomp,eij,fmi,spi,rij,nearest,rijo);     
      
       if (lattice_flag)
-	 compute_elastic_mech(icomp,fi,spi,rij,nearest,rijo);
+	      compute_elastic_mech(icomp,fi,spi,rij,nearest,rijo);
 
      //printf("Calculated Magnetoelastic  Force on atom i = %d fx = %.16f, fy = %.16f fz=%.16f \n",i,fi[0],fi[1],fi[2]);
       if (eflag){
-	 evdwl -= compute_elastic_energy(icomp,eij,spi,rij,nearest,rijo);
-//	 printf("Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
-	 emag[i] =+ evdwl;
+	      evdwl -= compute_elastic_energy(icomp,eij,spi,rij,nearest,rijo);
+	    // printf("Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
+	      emag[i] =+ evdwl;
        } else evdwl = 0.0;
 
-     f[i][0] += fi[0];
-     f[i][1] += fi[1];
-     f[i][2] += fi[2];
+      f[i][0] += fi[0];
+      f[i][1] += fi[1];
+      f[i][2] += fi[2];
      
      if (newton_pair || j < nlocal) {
-       f[jcomp][0] -= fi[0];
+      /* f[jcomp][0] -= fi[0];
        f[jcomp][1] -= fi[1];
-       f[jcomp][2] -= fi[2];
+       f[jcomp][2] -= fi[2];*/
+       f[j][0] -= fi[0];
+       f[j][1] -= fi[1];
+       f[j][2] -= fi[2];
      }
      
-//	 printf("SECOND Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
+  //printf("SECOND Magnetoelastic energy on atom i = %d and atom j =%d = %.16f \n",i,j,evdwl);
   // printf("Atom %d original rij with atom j= %d x=%f y=%f z=%f \n ",icomp,j, rijo[0], rijo[1], rijo[2] );
   //printf("Atom %d current rij with atom j = %d  x=%f y=%f z=%f with %f neighbors \n ",icomp,j, rij[0], rij[1], rij[2], nearest);
   // printf("Atom %d effective field fmx=%f fmy=%f fmz=%f \n ",icomp,fmi[0],fmi[1],fmi[2] );
-    //   printf("nearest between at i = %d and atom j = %d is %f for trad distance is =%f \n", icomp,j,nearest,sqrt(rijo[0]*rijo[0] + rijo[1]*rijo[1]+rijo[2]*rijo[2])); 
+  // printf("nearest between at i = %d and atom j = %d is %f for trad distance is =%f \n", icomp,j,nearest,sqrt(rijo[0]*rijo[0] + rijo[1]*rijo[1]+rijo[2]*rijo[2])); 
      fm[i][0] += fmi[0];
      fm[i][1] += fmi[1];
      fm[i][2] += fmi[2];
@@ -681,10 +627,10 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
     // set up variables for Strain Calculation to zero
     for (int cx = 0; cx<3; cx++){
       for (int cy = 0; cy<3; cy++){
-	a[cx][cy] = 0.0;
-	c[cx][cy] = 0.0;
-	l[cx][cy] = 0.0;
-	eij[cx][cy] = 0.0;
+	      a[cx][cy] = 0.0;
+	      c[cx][cy] = 0.0;
+	      l[cx][cy] = 0.0;
+	      eij[cx][cy] = 0.0;
       }
     }
 
@@ -716,44 +662,44 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
       if(j != tag[j] - 1) 
        j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1          
       if(ii != tag[ii] - 1)
-	 icomp = tag[ii]-1;
+	      icomp = tag[ii]-1;
       // Create old rij vector from atomic positions at begining of fix
       // Use smart distance to ensure rij pointing vector is in the correct direction
 
       //Create scaled sio & sjo vectors by simulation size
       if(domain->nonperiodic == 0){
-	 sio[0] = r0[icomp][0]/Lx;
-	 sio[1] = r0[icomp][1]/Ly;
-	 sio[2] = r0[icomp][2]/Lz;
-	 sjo[0] = r0[j][0]/Lx;
-	 sjo[1] = r0[j][1]/Ly;
-	 sjo[2] = r0[j][2]/Lz;
+	      sio[0] = r0[icomp][0]/Lx;
+	      sio[1] = r0[icomp][1]/Ly;
+	      sio[2] = r0[icomp][2]/Lz;
+	      sjo[0] = r0[j][0]/Lx;
+	      sjo[1] = r0[j][1]/Ly;
+	      sjo[2] = r0[j][2]/Lz;
       
-	// Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50
-	  // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
-	 rijo[0] = sjo[0] - sio[0];
-	 rijo[0] += 0.5;
-	 rijo[0] -= floor(rijo[0]);
-	 rijo[0] -= 0.5;
-	 rijo[0] *= Lx;
+	      // Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50
+	      // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
+	      rijo[0] = sjo[0] - sio[0];
+	      rijo[0] += 0.5;
+	      rijo[0] -= floor(rijo[0]);
+	      rijo[0] -= 0.5;
+	      rijo[0] *= Lx;
  
-	 rijo[1] = sjo[1] - sio[1];
-	 rijo[1] += 0.5;
-	 rijo[1] -= floor(rijo[1]);
-	 rijo[1] -= 0.5;
-	 rijo[1] *= Ly;
+	      rijo[1] = sjo[1] - sio[1];
+	      rijo[1] += 0.5;
+	      rijo[1] -= floor(rijo[1]);
+	      rijo[1] -= 0.5;
+	      rijo[1] *= Ly;
 		 
-	 rijo[2] = sjo[2] - sio[2];
-	 rijo[2] += 0.5;
-	 rijo[2] -= floor(rijo[2]);
-	 rijo[2] -= 0.5;
-	 rijo[2] *= Lz;
-	 }
+	      rijo[2] = sjo[2] - sio[2];
+	      rijo[2] += 0.5;
+	      rijo[2] -= floor(rijo[2]);
+	      rijo[2] -= 0.5;
+	      rijo[2] *= Lz;
+	    }
       else{
-	 rijo[0] = r0[j][0] - r0[icomp][0];
-	 rijo[1] = r0[j][1] - r0[icomp][1];
-	 rijo[2] = r0[j][2] - r0[icomp][2];
-     	 }	      
+	      rijo[0] = r0[j][0] - r0[icomp][0];
+	      rijo[1] = r0[j][1] - r0[icomp][1];
+	      rijo[2] = r0[j][2] - r0[icomp][2];
+     	}	      
 
      //Define rsq & localcut 2 for cutoff criteria    
 	  
@@ -764,17 +710,17 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
       // If failed, atom j isnt a major contributor to strain on atom i 
       
       if (rsq <= local_cut2) {
-	nearest ++;
+	    nearest ++;
         // Create Vi & Wi Matrixes used in Transformation matrix
 	
-	// Ai = SUM j E Jnum (rijo' * rijo) & Ci = SUM j E jnum ( rijo' * rij )
+	    // Ai = SUM j E Jnum (rijo' * rijo) & Ci = SUM j E jnum ( rijo' * rij )
 
     	for (int ax = 0; ax<3; ax++){
           for (int ay = 0; ay<3; ay++){
-	    a[ax][ay] += (rijo[ax] * rijo[ay]);
-	    c[ax][ay] += (rijo[ax] * rij[ay]);
-	  }	
-	}
+	        a[ax][ay] += (rijo[ax] * rijo[ay]);
+	        c[ax][ay] += (rijo[ax] * rij[ay]);
+	        }	
+	      }
       }
     }
     // START CALCULATIONS HERE
@@ -832,43 +778,43 @@ void PairSpinElastic::compute_single_pair(int ii, double fmi[3])
       if(j != tag[j] - 1) 
        j = tag[j] - 1; // j = sametag[j] //Tag is N number of atoms while j must be N-1          
       if(ii != tag[ii] - 1)
-	 icomp = tag[ii]-1;
+	    icomp = tag[ii]-1;
       // Create old rij vector from atomic positions at begining of fix
       // Use smart distance to ensure rij pointing vector is in the correct direction
 
       //Create scaled sio & sjo vectors by simulation size
       if(domain->nonperiodic == 0){
-	 sio[0] = r0[icomp][0]/Lx;
-	 sio[1] = r0[icomp][1]/Ly;
-	 sio[2] = r0[icomp][2]/Lz;
-	 sjo[0] = r0[j][0]/Lx;
-	 sjo[1] = r0[j][1]/Ly;
-	 sjo[2] = r0[j][2]/Lz;
+	      sio[0] = r0[icomp][0]/Lx;
+	      sio[1] = r0[icomp][1]/Ly;
+	      sio[2] = r0[icomp][2]/Lz;
+	      sjo[0] = r0[j][0]/Lx;
+	      sjo[1] = r0[j][1]/Ly;
+	      sjo[2] = r0[j][2]/Lz;
       
-	// Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50
-	  // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
-	 rijo[0] = sjo[0] - sio[0];
-	 rijo[0] += 0.5;
-	 rijo[0] -= floor(rijo[0]);
-	 rijo[0] -= 0.5;
-	 rijo[0] *= Lx;
+	      // Verify smart distance direction, isnt smart enough if atom is located EXACTLY mid simulation at 0.50
+	      // Preform Smart distance to ensure Pointing OLD rij vector is pointing to CORRECT atom
+	      rijo[0] = sjo[0] - sio[0];
+	      rijo[0] += 0.5;
+	      rijo[0] -= floor(rijo[0]);
+	      rijo[0] -= 0.5;
+	      rijo[0] *= Lx;
  
-	 rijo[1] = sjo[1] - sio[1];
-	 rijo[1] += 0.5;
-	 rijo[1] -= floor(rijo[1]);
-	 rijo[1] -= 0.5;
-	 rijo[1] *= Ly;
+	      rijo[1] = sjo[1] - sio[1];
+	      rijo[1] += 0.5;
+	      rijo[1] -= floor(rijo[1]);
+	      rijo[1] -= 0.5;
+	      rijo[1] *= Ly;
 		 
-	 rijo[2] = sjo[2] - sio[2];
-	 rijo[2] += 0.5;
-	 rijo[2] -= floor(rijo[2]);
-	 rijo[2] -= 0.5;
-	 rijo[2] *= Lz;
-	 }
+	      rijo[2] = sjo[2] - sio[2];
+	      rijo[2] += 0.5;
+	      rijo[2] -= floor(rijo[2]);
+	      rijo[2] -= 0.5;
+	      rijo[2] *= Lz;
+	    }
       else{
-	 rijo[0] = r0[j][0] - r0[icomp][0];
-	 rijo[1] = r0[j][1] - r0[icomp][1];
-	 rijo[2] = r0[j][2] - r0[icomp][2];
+	      rijo[0] = r0[j][0] - r0[icomp][0];
+	      rijo[1] = r0[j][1] - r0[icomp][1];
+	      rijo[2] = r0[j][2] - r0[icomp][2];
      	 }	      
 
      //Define rsq & localcut 2 for cutoff criteria    
@@ -923,8 +869,8 @@ void PairSpinElastic::compute_elastic(int i, double eij[3][3], double fmi[3], do
 
 
   //Additions done to account for removal of atoms
-  b1bar =(vol*b1_mech[itype][itype])/(nearest * (2*(nearest/8)));
-  b2bar =(vol*b2_mech[itype][itype])/(nearest * (2*(nearest/8)));
+  b1bar =(vol*b1_mag[itype][itype])/(nearest * (2*(nearest/8)));
+  b2bar =(vol*b2_mag[itype][itype])/(nearest * (2*(nearest/8)));
  /* //calculate first part of equation 2b1*[alphi*epsiii]
   //ASSUMES MONOTYPE SYSTEM FIX LATER
   firstx = 2.0*b1_mag[itype][itype]*(skx * eij[0][0]);
@@ -1072,9 +1018,11 @@ double PairSpinElastic::compute_elastic_energy(int i, double eij[3][3], double s
   //b2bar =(vol*b2_mag[itype][itype])/(nearest * 2);
  
  //Additions done to account for removal of atoms
-  b1bar =(vol*b1_mech[itype][itype])/(nearest * (2*(nearest/8)));
-  b2bar =(vol*b2_mech[itype][itype])/(nearest * (2*(nearest/8)));
+  b1bar =(vol*b1_mag[itype][itype])/(nearest * (2*(nearest/8)));
+  b2bar =(vol*b2_mag[itype][itype])/(nearest * (2*(nearest/8)));
  
+  //b1bar = b1_mag[itype][itype];
+  //b2bar = b2_mag[itype][itype];
 
 // printf("b1 bar equals =%f b2 bar equals %f \n",vol*b1_mech[itype][itype]/2,vol*b2_mech[itype][itype]/2);
   //b2bar = b2_mech[itype][itype]/(nearest * l);
@@ -1170,7 +1118,6 @@ void PairSpinElastic::allocate()
   memory->create(b2_mag,n+1,n+1,"pair/spin/soc/elastic:b2_mag");
   memory->create(b2_mech,n+1,n+1,"pair/spin/soc/elastic:b2_mech");
   memory->create(r0,n+1,n+1,"pair/spin/soc/elastic:r0");
-  memory->create(e0,n+1,n+1,"pair/spin/soc/elastic:e0");
   memory->create(cutsq,n+1,n+1,"pair/spin/soc/elastic:cutsq");
 }
 
@@ -1191,8 +1138,7 @@ void PairSpinElastic::write_restart(FILE *fp)
         fwrite(&b1_mech[i][j],sizeof(double),1,fp);
         fwrite(&b2_mag[i][j],sizeof(double),1,fp);
         fwrite(&b2_mech[i][j],sizeof(double),1,fp);
-        fwrite(&r0[i][j],sizeof(double),1,fp);		
-	fwrite(&e0[i][j],sizeof(double),1,fp);		
+        fwrite(&r0[i][j],sizeof(double),1,fp);				
         fwrite(&cut_spin_elastic[i][j],sizeof(double),1,fp);
       }
     }
@@ -1221,7 +1167,6 @@ void PairSpinElastic::read_restart(FILE *fp)
           utils::sfread(FLERR,&b2_mag[i][j],sizeof(double),1,fp,nullptr,error);
           utils::sfread(FLERR,&b2_mech[i][j],sizeof(double),1,fp,nullptr,error);
           utils::sfread(FLERR,&r0[i][j],sizeof(double),1,fp,nullptr,error);
-	  utils::sfread(FLERR,&e0[i][j],sizeof(double),1,fp,nullptr,error);
           utils::sfread(FLERR,&cut_spin_elastic[i][j],sizeof(double),1,fp,nullptr,error);
         }
         MPI_Bcast(&b1_mag[i][j],1,MPI_DOUBLE,0,world);
@@ -1229,7 +1174,6 @@ void PairSpinElastic::read_restart(FILE *fp)
         MPI_Bcast(&b2_mag[i][j],1,MPI_DOUBLE,0,world);
         MPI_Bcast(&b2_mech[i][j],1,MPI_DOUBLE,0,world);
         MPI_Bcast(&r0[i][j],1,MPI_DOUBLE,0,world);
-	MPI_Bcast(&e0[i][j],1,MPI_DOUBLE,0,world);
         MPI_Bcast(&cut_spin_elastic[i][j],1,MPI_DOUBLE,0,world);
       }
     }
@@ -1255,6 +1199,7 @@ void PairSpinElastic::read_restart_settings(FILE *fp)
 {
   if (comm->me == 0) {
     utils::sfread(FLERR,&cut_spin_elastic_global,sizeof(double),1,fp,nullptr,error);
+    //utils::sfread(FLERR,&r0[i][j],sizeof(double),1,fp,nullptr,error);
     utils::sfread(FLERR,&offset_flag,sizeof(int),1,fp,nullptr,error);
     utils::sfread(FLERR,&mix_flag,sizeof(int),1,fp,nullptr,error);
   }
