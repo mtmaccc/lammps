@@ -26,7 +26,7 @@
 #include "irregular.h"
 #include "memory.h"
 #include "reader.h"
-#include "style_reader.h"    // IWYU pragma: keep
+#include "style_reader.h"    
 #include "update.h"
 
 #include <cstring>
