@@ -20,3 +20,6 @@ min_modify	     dmax ${dmax} line quadratic
 thermo		1
 thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
 thermo_modify norm no
+
+
+
